@@ -390,7 +390,9 @@
     .font-scroll-box {
         max-height: 250px; /* Altura máxima fixa */
         overflow-y: auto;  /* Cria barra de rolagem interna se passar da altura */
-        -webkit-overflow-scrolling: touch; /* Garante rolagem lisa no iPhone */
+touch-action: pan-y !important; 
+    -webkit-overflow-scrolling: touch; 
+    pointer-events: auto;
         border: 2px solid #eee;
         border-radius: 12px;
         background: #fff;
@@ -620,7 +622,7 @@
       <div class="label-row"><i class="material-icons-round" style="font-size:16px">space_bar</i> Espaçamento</div>
       <input type="range" id="txtSpacing" min="-50" max="800" step="10" oninput="updateActiveText('spacing')">
       <div class="label-row"><i class="material-icons-round" style="font-size:16px">font_download</i> Fonte</div>
-<div id="font-scroll-container" class="font-scroll-box">
+<div id="font-scroll-container" class="font-scroll-box" onpointerdown="event.stopPropagation();">
   </div>
     </div>
   </div>
@@ -1545,6 +1547,7 @@ function changeFont(fontName) {
 </script>
 </body>
 </html>
+
 
 
 
