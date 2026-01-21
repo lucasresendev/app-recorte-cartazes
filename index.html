@@ -28,7 +28,7 @@
       --danger: #d32f2f;
     }
 
-    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; touch-action: none; }
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
 
     body {
       margin: 0; padding: 0;
@@ -423,6 +423,14 @@ touch-action: pan-y !important;
         color: white;
         font-weight: bold;
     }
+    .sheet-content, .font-scroll-box, .pdf-grid-container {
+        touch-action: pan-y !important; /* Libera rolagem vertical */
+    }
+
+    /* Bloqueia rolagem no Canvas para desenhar sem a tela mexer */
+    canvas {
+        touch-action: none !important;
+    }
   </style>
 </head>
 <body>
@@ -622,7 +630,7 @@ touch-action: pan-y !important;
       <div class="label-row"><i class="material-icons-round" style="font-size:16px">space_bar</i> Espaçamento</div>
       <input type="range" id="txtSpacing" min="-50" max="800" step="10" oninput="updateActiveText('spacing')">
       <div class="label-row"><i class="material-icons-round" style="font-size:16px">font_download</i> Fonte</div>
-<div id="font-scroll-container" class="font-scroll-box" onpointerdown="event.stopPropagation();">
+<div id="font-scroll-container" class="font-scroll-box">
   </div>
     </div>
   </div>
@@ -1569,6 +1577,7 @@ function setupDraggableSheets() {
 </script>
 </body>
 </html>
+
 
 
 
