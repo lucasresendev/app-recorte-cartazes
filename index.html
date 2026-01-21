@@ -354,6 +354,38 @@
     }
 
     @keyframes spin { from {transform:rotate(0deg);} to {transform:rotate(360deg);} }
+    .material-icons-round {
+        font-family: 'Material Icons Round';
+        font-weight: normal;
+        font-style: normal;
+        font-size: 24px;
+        line-height: 1;
+        letter-spacing: normal;
+        text-transform: none;
+        display: inline-block;
+        white-space: nowrap;
+        word-wrap: normal;
+        direction: ltr;
+        -webkit-font-smoothing: antialiased;
+        /* Se a fonte falhar, esconde o texto feio */
+        text-rendering: optimizeLegibility; 
+    }
+    #fontInput {
+        width: 100%;
+        padding: 15px;
+        border-radius: 12px;
+        border: 2px solid #eee;
+        font-size: 16px;
+        background-color: #fff;
+        appearance: none; /* Remove estilo padrão feio do navegador */
+        -webkit-appearance: none;
+        background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23007CB2%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+        background-repeat: no-repeat;
+        background-position: right 15px top 50%;
+        background-size: 12px auto;
+        color: #333;
+        font-weight: 500;
+    }
   </style>
 </head>
 <body>
@@ -553,7 +585,8 @@
       <div class="label-row"><i class="material-icons-round" style="font-size:16px">space_bar</i> Espaçamento</div>
       <input type="range" id="txtSpacing" min="-50" max="800" step="10" oninput="updateActiveText('spacing')">
       <div class="label-row"><i class="material-icons-round" style="font-size:16px">font_download</i> Fonte</div>
-      <div class="font-grid" id="fontList"></div>
+<select id="fontInput" onchange="changeFont(this.value)" style="margin-bottom: 20px; background: white;">
+    </select>
     </div>
   </div>
 
@@ -627,14 +660,10 @@
   let cropper;
   let activeImageObj = null;
 const fonts = [
-      // Básicas e Modernas
-      "Roboto", "Open Sans", "Montserrat", "Lato", "Poppins", "Inter",
-      // Impacto / Títulos (Bold)
-      "Oswald", "Anton", "Bangers", "Bebas Neue", "Archivo Black",
-      // Serifadas (Elegantes)
-      "Merriweather", "Playfair Display", "Lora", "Abril Fatface",
-      // Manuscritas / Decorativas
-      "Lobster", "Pacifico", "Dancing Script", "Satisfy", "Permanent Marker", 
+      "Roboto", "Open Sans", "Montserrat", "Lato", "Poppins", "Inter", // Básicas
+      "Oswald", "Anton", "Bangers", "Bebas Neue", "Archivo Black", // Impacto
+      "Merriweather", "Playfair Display", "Lora", "Abril Fatface", // Serif
+      "Lobster", "Pacifico", "Dancing Script", "Satisfy", "Permanent Marker", // Cursivas
       "Caveat", "Shadows Into Light", "Amatic SC", "Courgette"
   ];
 
@@ -787,10 +816,13 @@ const fonts = [
     if(target.type === 'i-text' || target.type === 'text') {
       openSheet('textSheet');
       document.getElementById('txtSpacing').value = target.charSpacing;
-      document.getElementById('previewText').style.fontFamily = target.fontFamily;
+const cleanFont = target.fontFamily.replace(/['"]+/g, ''); // Remove aspas
+      document.getElementById('previewText').style.fontFamily = cleanFont;
+      document.getElementById('fontInput').value = cleanFont; // Seleciona no menu
+      // -----------------------------
+      
       document.getElementById('previewText').style.letterSpacing = (target.charSpacing / 20) + 'px'; 
-      highlightFont(target.fontFamily);
-    } 
+    }
     // Imagem
     else if (target.type === 'image') {
         startCrop(target);
@@ -1340,35 +1372,31 @@ const fonts = [
     canvas.requestRenderAll();
   }
 function loadFonts() {
-    // Carrega todas do Google Fonts
+    // Carrega do Google Fonts
     WebFont.load({ google: { families: fonts } });
     
-    const c = document.getElementById('fontList');
-    c.innerHTML = ''; // Limpa a lista antes de recriar
+    const select = document.getElementById('fontInput');
+    select.innerHTML = ""; // Limpa
 
     fonts.forEach(f => {
-      const d = document.createElement('div'); 
-      d.className = 'font-card'; 
-      
-      // O texto do botão é o próprio nome da fonte, estilizado com ela mesma
-      d.innerText = f; 
-      d.style.fontFamily = f;
-      
-      d.onclick = () => {
-        // Atualiza preview
-        document.getElementById('previewText').style.fontFamily = f;
-        
-        // Atualiza objeto no canvas
-        const obj = canvas.getActiveObject(); 
-        if(obj && (obj.type === 'i-text' || obj.type === 'text')) { 
-            obj.set('fontFamily', f); 
-            canvas.requestRenderAll(); 
-        }
-        
-        highlightFont(f);
-      }; 
-      c.appendChild(d);
+      const option = document.createElement('option');
+      option.value = f;
+      option.innerText = f;
+      // Pequeno truque: aplica a fonte na própria opção (funciona em alguns navegadores, não todos)
+      option.style.fontFamily = f; 
+      select.appendChild(option);
     });
+  }
+  function changeFont(fontName) {
+      // Atualiza preview
+      document.getElementById('previewText').style.fontFamily = fontName;
+      
+      // Atualiza objeto no canvas
+      const obj = canvas.getActiveObject(); 
+      if(obj && (obj.type === 'i-text' || obj.type === 'text')) { 
+          obj.set('fontFamily', fontName); 
+          canvas.requestRenderAll(); 
+      }
   }
 function highlightFont(name) { 
       document.querySelectorAll('.font-card').forEach(c => { 
@@ -1477,6 +1505,7 @@ function highlightFont(name) {
 </script>
 </body>
 </html>
+
 
 
 
