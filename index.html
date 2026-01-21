@@ -499,7 +499,7 @@ touch-action: pan-y !important;
           <i class="material-icons-round" style="font-size:18px; color:var(--primary)">save</i> Salvar
         </button>
 
-        <div id="export-menu" class="export-menu">
+<div id="export-menu" class="export-menu">
             <div class="export-item" onclick="startExport('pdf')">
                 <i class="material-icons-round">picture_as_pdf</i> Baixar PDF (Padrão)
             </div>
@@ -511,6 +511,10 @@ touch-action: pan-y !important;
             </div>
             <div class="export-item" onclick="startExport('img-single')">
                 <i class="material-icons-round">image</i> Baixar Imagem Única
+            </div>
+            <div class="export-item" onclick="saveProject()" style="border-top: 2px solid #eee; background: #f9f9f9;">
+                <i class="material-icons-round" style="color:var(--primary)">save</i> 
+                <span>Salvar Projeto Editável</span>
             </div>
         </div>
     </div>
@@ -1601,6 +1605,7 @@ function saveProject() {
 </script>
 </body>
 </html>
+
 
 
 
