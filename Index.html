@@ -346,31 +346,9 @@
       display: flex; justify-content: space-between; align-items: center;
       color: white; margin-bottom: 10px; flex-shrink: 0;
     }
-
-    @keyframes spin { from {transform:rotate(0deg);} to {transform:rotate(360deg);} }
-    body { user-select: none; -webkit-user-select: none; } /* Impede selecionar texto */
-
-    #login-overlay {
-        position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-        background: #121212; z-index: 99999;
-        display: flex; flex-direction: column; justify-content: center; align-items: center;
-        color: white; font-family: sans-serif;
-    }
-    #pass-input {
-        padding: 10px; font-size: 18px; border-radius: 8px; border: none; margin-bottom: 10px; text-align: center;
-    }
-    #login-btn {
-        padding: 10px 20px; background: var(--primary, #233476); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;
-    }
   </style>
 </head>
 <body>
-<div id="login-overlay">
-      <h2 style="margin-bottom:20px;">Acesso Restrito</h2>
-      <input type="password" id="pass-input" placeholder="Digite a senha">
-      <button id="login-btn" onclick="checkPass()">Entrar</button>
-      <p id="error-msg" style="color:#d32f2f; display:none; margin-top:10px;">Senha incorreta</p>
-  </div>
   <div id="loader">
     <i class="material-icons-round" style="font-size: 48px; color: var(--accent); animation: spin 1s infinite linear">donut_large</i>
     <p id="loader-msg" style="margin-top:15px; font-weight:500; color: #fff;">Carregando...</p>
@@ -622,39 +600,6 @@
   </div>
 
 <script>
-  const APP_PASSWORD = "123"; // <--- TROQUE "123" PELA SUA SENHA AQUI
-
-  function checkPass() {
-      const input = document.getElementById('pass-input');
-      const error = document.getElementById('error-msg');
-      // Verifica a senha
-      if (input.value === APP_PASSWORD) {
-          document.getElementById('login-overlay').style.display = 'none';
-          // Tenta forçar o layout a recalcular caso tenha bugado atrás da tela preta
-          if(typeof updateGrid === 'function') setTimeout(updateGrid, 100);
-      } else {
-          error.style.display = 'block';
-          input.value = "";
-      }
-  }
-
-  // Permite apertar Enter para entrar
-  document.getElementById('pass-input')?.addEventListener('keypress', function (e) {
-      if (e.key === 'Enter') checkPass();
-  });
-
-  // BLOQUEIO DE CLIQUE DIREITO
-  document.addEventListener('contextmenu', event => event.preventDefault());
-
-  // BLOQUEIO DE TECLAS DE DESENVOLVEDOR (F12, Ctrl+Shift+I, etc)
-  document.onkeydown = function(e) {
-      if(e.keyCode == 123) return false; // F12
-      if(e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) return false; // Inspect
-      if(e.ctrlKey && e.shiftKey && e.keyCode == 'C'.charCodeAt(0)) return false; // Inspect
-      if(e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) return false; // Console
-      if(e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) return false; // View Source
-      if(e.ctrlKey && e.keyCode == 'S'.charCodeAt(0)) return false; // Save
-  }
  // --- CONFIGURAÇÕES GLOBAIS ---
   const SIZES = { 'a4': { w: 210, h: 297 }, 'a3': { w: 297, h: 420 } };
   const PXM = 3; 
