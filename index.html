@@ -1519,10 +1519,19 @@ function setupDraggableSheets() {
       document.getElementById('loader').style.display = 'flex'; document.getElementById('loader-msg').innerText = "Processando...";
       requestAnimationFrame(() => setTimeout(() => processExport(type), 100));
   }
-  function saveProject() {
-      document.getElementById('export-menu').classList.remove('show'); updateGridConfigInCanvas();
+function saveProject() {
+      document.getElementById('export-menu').classList.remove('show');
+      updateGridConfigInCanvas();
       const json = JSON.stringify(canvas.toJSON(['isBackground', 'gridConfig', 'id']));
-      const blob = new Blob([json], {type: "application/json"}); saveAs(blob, `Projeto_Cartaz_${Date.now()}.json`);
+      const blob = new Blob([json], {type: "application/json"});
+      
+      // GERA DATA LEGÍVEL: Ex: 21-05-2024_15h30
+      const d = new Date();
+      const dataStr = d.toLocaleDateString('pt-BR').replace(/\//g,'-');
+      const horaStr = d.getHours() + 'h' + String(d.getMinutes()).padStart(2, '0');
+      const nomeFinal = `Projeto_${dataStr}_${horaStr}`;
+
+      saveAs(blob, `${nomeFinal}.json`);
   }
   function loadProject(input) {
       const file = input.files[0]; if (!file) return;
@@ -1533,6 +1542,14 @@ function setupDraggableSheets() {
 
   async function processExport(type) {
     const loader = document.getElementById('loader'); const loaderMsg = document.getElementById('loader-msg');
+    
+    // GERA NOME AUTOMÁTICO LIMPO
+    const d = new Date();
+    const dataStr = d.toLocaleDateString('pt-BR').replace(/\//g,'-');
+    const horaStr = d.getHours() + 'h' + String(d.getMinutes()).padStart(2, '0');
+    // Resultado: Cartaz_21-05-2024_15h30
+    const nomeArquivo = `Cartaz_${dataStr}_${horaStr}`;
+
     try {
         const { jsPDF } = window.jspdf;
         const savedVpt = [...canvas.viewportTransform]; canvas.discardActiveObject();
@@ -1541,10 +1558,14 @@ function setupDraggableSheets() {
         const cellW = grid.w / grid.cols; const cellH = grid.h / grid.rows;
         const targetWidthPx = 1800; const multiplier = targetWidthPx / cellW;
         let zip = null; if (type === 'img-split' || type === 'pdf-split') zip = new JSZip();
+        
         if (type === 'img-single') {
              const dataUrl = canvas.toDataURL({ left: 0, top: 0, width: grid.w, height: grid.h, format: 'jpeg', quality: 0.9, multiplier: 1 });
-            saveAs(dataURItoBlob(dataUrl), `Cartaz_Completo_${Date.now()}.jpg`); finishExport(savedVpt); return;
+            // SALVA JPG
+            saveAs(dataURItoBlob(dataUrl), `${nomeArquivo}.jpg`); 
+            finishExport(savedVpt); return;
         }
+        
         const totalPages = grid.rows * grid.cols; let processed = 0; let doc = null;
         if (type === 'pdf') doc = new jsPDF({ orientation: orientation, unit: 'mm', format: grid.size });
         for(let r=0; r<grid.rows; r++) {
@@ -1561,8 +1582,11 @@ function setupDraggableSheets() {
             }
         }
         loaderMsg.innerText = "Salvando..."; await new Promise(resolve => setTimeout(resolve, 50));
-        if (type === 'pdf') doc.save(`Cartaz_${Date.now()}.pdf`);
-        else if (zip) { const content = await zip.generateAsync({type:"blob"}); saveAs(content, `Cartaz_Pack_${Date.now()}.zip`); }
+        
+        // SALVA PDF OU ZIP COM O NOME LIMPO
+        if (type === 'pdf') doc.save(`${nomeArquivo}.pdf`);
+        else if (zip) { const content = await zip.generateAsync({type:"blob"}); saveAs(content, `${nomeArquivo}.zip`); }
+        
         finishExport(savedVpt);
     } catch(e) { console.error(e); alert("Erro: " + e.message); document.getElementById('loader').style.display = 'none'; if(typeof savedVpt !== 'undefined') { canvas.viewportTransform = savedVpt; canvas.requestRenderAll(); } }
   }
@@ -1577,6 +1601,7 @@ function setupDraggableSheets() {
 </script>
 </body>
 </html>
+
 
 
 
