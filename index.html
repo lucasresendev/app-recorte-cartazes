@@ -173,7 +173,7 @@
       padding: 0 24px 30px 24px;
       transform: translateY(110%);
       transition: transform 0.3s cubic-bezier(0.1, 0.7, 0.1, 1);
-      z-index: 60;
+      z-index: 100;
       box-shadow: 0 -10px 50px rgba(0,0,0,0.5);
       max-height: 80vh; 
       display: flex; flex-direction: column;
@@ -914,7 +914,7 @@ const fonts = [
         ...clickAreaConfig, x: -0.5, y: -0.5, offsetY: -24, offsetX: -24, mouseUpHandler: handleEditClick,
         render: function(ctx, left, top, styleOverride, fabricObject) {
             const isImg = fabricObject.type === 'image';
-            renderIcon(isImg ? 'content_cut' : 'edit', isImg ? '#f57c00' : '#233476').call(this, ctx, left, top, styleOverride, fabricObject);
+            renderIcon(isImg ? 'content_cut' : 'palette', isImg ? '#f57c00' : '#233476').call(this, ctx, left, top, styleOverride, fabricObject);
         }
     });
     fabric.Object.prototype.controls.deleteControl = new fabric.Control({
@@ -1589,8 +1589,21 @@ function setupDraggableSheets() {
     });
   });
 }
-  function openSheet(id) { closeSheets(); document.getElementById(id).classList.add('open'); }
-  function closeSheets() { document.querySelectorAll('.sheet').forEach(s => s.classList.remove('open')); }
+function openSheet(id) {
+    closeSheets();
+    document.getElementById(id).classList.add('open');
+    
+    // NOVO: Esconde o botão de alterar texto quando abrir qualquer menu
+    const btn = document.getElementById('floating-edit-btn');
+    if(btn) btn.classList.remove('visible');
+}
+
+function closeSheets() {
+    document.querySelectorAll('.sheet').forEach(s => s.classList.remove('open'));
+    
+    // NOVO: Ao fechar o menu, verifica se o botão deve voltar (se o texto continuar selecionado)
+    setTimeout(updateFloatingButton, 300); // Espera a aba descer para mostrar o botão
+}
 
   function getDist(t1, t2) { const dx = t1.clientX - t2.clientX; const dy = t1.clientY - t2.clientY; return Math.hypot(dx, dy); }
 
@@ -1725,6 +1738,7 @@ function triggerTextEdit() {
 </button>
 </body>
 </html>
+
 
 
 
