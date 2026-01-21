@@ -204,12 +204,47 @@
     input[type="range"] { width: 100%; box-sizing: border-box; max-width: 100%; accent-color: var(--primary); cursor: pointer; height: 6px; }
     .slider-val { font-weight: bold; color: var(--primary); min-width: 20px; text-align: center; }
 
-    .font-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 8px; }
-    .font-card {
-      background: #f9f9f9; border-radius: 8px; padding: 12px;
-      text-align: center; font-size: 14px; border: 2px solid transparent; cursor: pointer;
+.font-grid { 
+        display: flex; 
+        flex-direction: column; 
+        gap: 10px; 
+        padding-bottom: 20px;
     }
-    .font-card.active { border-color: var(--primary); background: #eef2ff; color: var(--primary); font-weight: bold; }
+    
+    .font-card {
+      background: #ffffff; 
+      border: 1px solid #e0e0e0; 
+      border-radius: 12px; 
+      padding: 15px;
+      text-align: left; 
+      font-size: 18px; 
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+    
+    .font-card:active { transform: scale(0.98); background: #f0f0f0; }
+    
+    .font-card.active { 
+        border-color: var(--primary); 
+        background: #eef2ff; 
+        color: var(--primary); 
+        border-width: 2px;
+    }
+    
+    /* Pequeno ícone de check para a fonte selecionada */
+    .font-card::after {
+        content: 'check_circle';
+        font-family: 'Material Icons Round';
+        font-size: 20px;
+        opacity: 0;
+        color: var(--primary);
+        transition: 0.2s;
+    }
+    .font-card.active::after { opacity: 1; }
 
     .shape-grid {
         display: grid; grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); 
@@ -591,7 +626,17 @@
 
   let cropper;
   let activeImageObj = null;
-  const fonts = ["Roboto", "Oswald", "Anton", "Lobster", "Pacifico", "Bangers", "Open Sans", "Montserrat", "Lato", "Inter"];
+const fonts = [
+      // Básicas e Modernas
+      "Roboto", "Open Sans", "Montserrat", "Lato", "Poppins", "Inter",
+      // Impacto / Títulos (Bold)
+      "Oswald", "Anton", "Bangers", "Bebas Neue", "Archivo Black",
+      // Serifadas (Elegantes)
+      "Merriweather", "Playfair Display", "Lora", "Abril Fatface",
+      // Manuscritas / Decorativas
+      "Lobster", "Pacifico", "Dancing Script", "Satisfy", "Permanent Marker", 
+      "Caveat", "Shadows Into Light", "Amatic SC", "Courgette"
+  ];
 
   let tempLoadedPDF = null;
 
@@ -1294,19 +1339,48 @@
     }
     canvas.requestRenderAll();
   }
-  function loadFonts() {
+function loadFonts() {
+    // Carrega todas do Google Fonts
     WebFont.load({ google: { families: fonts } });
+    
     const c = document.getElementById('fontList');
+    c.innerHTML = ''; // Limpa a lista antes de recriar
+
     fonts.forEach(f => {
-      const d = document.createElement('div'); d.className = 'font-card'; d.innerText = "Aa"; d.style.fontFamily = f;
+      const d = document.createElement('div'); 
+      d.className = 'font-card'; 
+      
+      // O texto do botão é o próprio nome da fonte, estilizado com ela mesma
+      d.innerText = f; 
+      d.style.fontFamily = f;
+      
       d.onclick = () => {
+        // Atualiza preview
         document.getElementById('previewText').style.fontFamily = f;
-        const obj = canvas.getActiveObject(); if(obj) { obj.set('fontFamily', f); canvas.requestRenderAll(); }
+        
+        // Atualiza objeto no canvas
+        const obj = canvas.getActiveObject(); 
+        if(obj && (obj.type === 'i-text' || obj.type === 'text')) { 
+            obj.set('fontFamily', f); 
+            canvas.requestRenderAll(); 
+        }
+        
         highlightFont(f);
-      }; c.appendChild(d);
+      }; 
+      c.appendChild(d);
     });
   }
-  function highlightFont(name) { document.querySelectorAll('.font-card').forEach(c => { c.classList.remove('active'); if(c.style.fontFamily.replace(/['"]+/g, '') === name) c.classList.add('active'); }); }
+function highlightFont(name) { 
+      document.querySelectorAll('.font-card').forEach(c => { 
+          c.classList.remove('active'); 
+          // Remove aspas do nome da fonte para comparar (ex: "Roboto" vs Roboto)
+          if(c.style.fontFamily.replace(/['"]+/g, '') === name.replace(/['"]+/g, '')) {
+              c.classList.add('active');
+              // Auto-scroll para a fonte selecionada
+              c.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+      }); 
+  }
 
   function setupDraggableSheets() {
     document.querySelectorAll('.sheet').forEach(sheet => {
@@ -1403,6 +1477,7 @@
 </script>
 </body>
 </html>
+
 
 
 
