@@ -2,8 +2,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   
   <title>Recorte em A3/A4</title>
   
@@ -15,10 +14,8 @@
   <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-
   <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
-
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons|Material+Icons+Round" rel="stylesheet">
   
   <style>
@@ -37,9 +34,12 @@
       margin: 0; padding: 0;
       background: var(--bg-dark);
       font-family: 'Roboto', sans-serif;
-      height: 100vh; width: 100vw;
+      /* CORREÇÃO CRÍTICA PARA MOBILE: 100dvh ignora barra de endereço */
+      height: 100dvh; 
+      width: 100vw;
       overflow: hidden;
       display: flex; flex-direction: column;
+      position: fixed; /* Trava a página para não rolar o fundo */
     }
 
     .ui-faded {
@@ -61,6 +61,8 @@
       background: linear-gradient(to bottom, rgba(0,0,0,0.9), transparent);
       pointer-events: none;
       transition: opacity 0.3s;
+      /* Respeita o "notch" do iPhone */
+      padding-top: env(safe-area-inset-top); 
     }
     #header > * { pointer-events: auto; }
 
@@ -122,6 +124,7 @@
       display: flex; justify-content: center; align-items: center;
       transition: 0.2s; cursor: pointer;
       color: var(--primary);
+      margin-top: env(safe-area-inset-top);
     }
     #mode-toggle.active-hand { background: var(--primary); color: white; transform: rotate(-15deg); }
 
@@ -132,7 +135,9 @@
     #canvas-wrapper { width: 100%; height: 100%; background: var(--bg-dark); }
 
     #toolbar {
-      position: absolute; bottom: 20px; 
+      position: absolute; 
+      /* CORREÇÃO DO MENU: Garante espaço da barra inferior do iPhone */
+      bottom: calc(20px + env(safe-area-inset-bottom)); 
       left: 20px; right: 20px; 
       height: 70px;
       background: rgba(255,255,255,0.98);
@@ -172,6 +177,7 @@
       box-shadow: 0 -10px 50px rgba(0,0,0,0.5);
       max-height: 80vh; 
       display: flex; flex-direction: column;
+      padding-bottom: calc(30px + env(safe-area-inset-bottom));
     }
     @media (min-width: 768px) {
       .sheet { left: 50%; right: auto; width: 500px; margin-left: -250px; border-radius: 24px 24px 0 0; }
@@ -180,11 +186,11 @@
     
     .drag-zone { width: 100%; padding: 15px 0; display: flex; justify-content: center; cursor: grab; }
     .drag-handle { width: 50px; height: 5px; background: var(--handle); border-radius: 10px; }
-.sheet-content {
-    overflow-y: auto;
-    overflow-x: hidden; /* Força sumir rolagem lateral */
-    padding: 0 24px 30px 24px;
-}
+    .sheet-content { 
+        overflow-y: auto; 
+        overflow-x: hidden;
+        padding: 0 24px 30px 24px; 
+    }
 
     .label-row { color: #888; font-size: 0.85rem; font-weight: 500; margin-bottom: 8px; margin-top: 15px; display:flex; align-items: center; gap: 6px; }
     .label-row i { color: var(--primary); }
@@ -195,12 +201,7 @@
     }
     select:focus, input[type="number"]:focus { border-color: var(--primary); }
     
-    input[type="range"] { width: 100%; accent-color: var(--primary); cursor: pointer; height: 6px; }
-    input[type="range"] {
-    width: 100%;
-    box-sizing: border-box; /* Essencial */
-    max-width: 100%;
-}
+    input[type="range"] { width: 100%; box-sizing: border-box; max-width: 100%; accent-color: var(--primary); cursor: pointer; height: 6px; }
     .slider-val { font-weight: bold; color: var(--primary); min-width: 20px; text-align: center; }
 
     .font-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 8px; }
@@ -210,54 +211,24 @@
     }
     .font-card.active { border-color: var(--primary); background: #eef2ff; color: var(--primary); font-weight: bold; }
 
-.shape-grid {
-    display: grid;
-    /* Isso cria colunas que se ajustam. Mínimo de 70px por ícone */
-    grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); 
-    gap: 12px;
-    margin-top: 10px;
-    padding-bottom: 20px; /* Espaço extra no final */
-}
+    .shape-grid {
+        display: grid; grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); 
+        gap: 12px; margin-top: 10px; padding-bottom: 20px;
+    }
+    .shape-btn {
+        aspect-ratio: 1; background: #f5f5f5; border-radius: 12px;
+        display: flex; justify-content: center; align-items: center;
+        cursor: pointer; border: 2px solid transparent; transition: 0.2s; overflow: hidden;
+    }
+    .shape-btn i { font-size: 32px; color: #555; }
 
-.shape-btn {
-    aspect-ratio: 1;
-    background: #f5f5f5;
-    border-radius: 12px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    cursor: pointer;
-    border: 2px solid transparent;
-    transition: 0.2s;
-    /* Garante que o ícone interno não estoure */
-    overflow: hidden; 
-}
-.shape-btn i { font-size: 32px; color: #555; } /* Usaremos ícones do Material Icons para facilitar */
-    
-    /* CÍRCULO */
-    .s-circle { border-radius: 50%; }
-    /* TRIANGULO (usando clip-path) */
-    .s-triangle { clip-path: polygon(50% 0%, 0% 100%, 100% 100%); background: #555; width: 60%; height: 60%; }
-    /* ESTRELA */
-    .s-star { clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); background: #555; width: 70%; height: 70%; }
-    /* RECT */
-    .s-rect { border-radius: 4px; }
-
-    /* CONTROLES DE COR DA FORMA */
     .color-row {
         display: flex; align-items: center; justify-content: space-between;
         padding: 10px 0; border-bottom: 1px solid #eee;
     }
-    .color-picker-wrapper {
-        display: flex; align-items: center; gap: 10px;
-    }
-    input[type="color"] {
-        width: 40px; height: 40px; border: none; padding: 0; background: none; border-radius: 50%; cursor: pointer;
-    }
-    input[type="checkbox"] {
-        width: 20px; height: 20px; accent-color: var(--primary);
-    }
-
+    .color-picker-wrapper { display: flex; align-items: center; gap: 10px; }
+    input[type="color"] { width: 40px; height: 40px; border: none; padding: 0; background: none; border-radius: 50%; cursor: pointer; }
+    input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--primary); }
 
     .preview-box {
       background: #f5f5f5; border: 1px solid #e0e0e0; border-radius: 12px;
@@ -346,9 +317,12 @@
       display: flex; justify-content: space-between; align-items: center;
       color: white; margin-bottom: 10px; flex-shrink: 0;
     }
+
+    @keyframes spin { from {transform:rotate(0deg);} to {transform:rotate(360deg);} }
   </style>
 </head>
 <body>
+
   <div id="loader">
     <i class="material-icons-round" style="font-size: 48px; color: var(--accent); animation: spin 1s infinite linear">donut_large</i>
     <p id="loader-msg" style="margin-top:15px; font-weight:500; color: #fff;">Carregando...</p>
@@ -356,8 +330,10 @@
 
   <div id="info-modal" onclick="this.style.display='none'">
     <div class="info-card" onclick="event.stopPropagation()">
-      <h2 style="color:var(--primary); margin-top:0;">Recorte de Cartazes</h2>
+      <h2 style="color:var(--primary); margin-top:0;">Criador de Cartazes</h2>
       <p style="color:#666; font-size:0.9rem;">Desenvolvido por<br><strong>Lucas Resende</strong></p>
+      <div style="margin: 20px 0; height:1px; background:#eee;"></div>
+      <p style="font-size:0.8rem; color:#888;">Suporte:<br>lucas.pinda@progressao.com</p>
       <button onclick="document.getElementById('info-modal').style.display='none'" style="background:var(--primary); color:white; border:none; padding:10px 30px; border-radius:20px; cursor:pointer; margin-top:10px;">Fechar</button>
     </div>
   </div>
@@ -547,18 +523,16 @@
     </div>
   </div>
 
-<div id="shapeSheet" class="sheet">
+  <div id="shapeSheet" class="sheet">
     <div class="drag-zone"><div class="drag-handle"></div></div>
     <div class="sheet-content">
         <div class="label-row" style="margin-top:0"><i class="material-icons-round">category</i> Escolher Forma</div>
         <div class="shape-grid">
             <div class="shape-btn" onclick="addShape('rect')"><i class="material-icons-round">square</i></div>
             <div class="shape-btn" onclick="addShape('circle')"><i class="material-icons-round">circle</i></div>
-            
             <div class="shape-btn" onclick="addShape('triangle')">
                 <i class="material-icons-round" style="transform: rotate(-90deg); font-size: 46px; margin-left:-3px;">play_arrow</i>
             </div>
-            
             <div class="shape-btn" onclick="addShape('star')"><i class="material-icons-round">star</i></div>
             <div class="shape-btn" onclick="addShape('heart')"><i class="material-icons-round">favorite</i></div>
             <div class="shape-btn" onclick="addShape('bubble')"><i class="material-icons-round">chat_bubble</i></div>
@@ -567,7 +541,7 @@
     </div>
   </div>
 
-<div id="shapeEditSheet" class="sheet">
+  <div id="shapeEditSheet" class="sheet">
     <div class="drag-zone"><div class="drag-handle"></div></div>
     <div class="sheet-content">
         <div class="label-row" style="margin-top:0"><i class="material-icons-round">palette</i> Propriedades da Forma</div>
@@ -600,7 +574,7 @@
   </div>
 
 <script>
- // --- CONFIGURAÇÕES GLOBAIS ---
+  // --- CONFIGURAÇÕES GLOBAIS ---
   const SIZES = { 'a4': { w: 210, h: 297 }, 'a3': { w: 297, h: 420 } };
   const PXM = 3; 
   let canvas;
@@ -641,7 +615,10 @@
     document.addEventListener('touchstart', handleOutsideClick);
     window.addEventListener('paste', handleGlobalPaste);
     
-    setTimeout(() => { updateGrid(); }, 100);
+    // Pequeno delay para garantir o cálculo correto da tela
+    setTimeout(() => {
+        updateGrid();
+    }, 100);
   };
 
   // --- INTERFACE ---
@@ -774,8 +751,7 @@
     else if (target.type === 'image') {
         startCrop(target);
     }
-    // Formas (AQUI ESTAVA O PROBLEMA - CORRIGIDO)
-    // Adicionado 'path' para formas complexas e 'polygon' para pentagono/triangulo
+    // Formas
     else if (['rect', 'circle', 'triangle', 'polygon', 'path'].includes(target.type)) {
         openShapeEditor(target);
     }
@@ -896,7 +872,7 @@
       canvas.requestRenderAll();
   }
 
-  // --- OUTRAS FUNÇÕES DE SUPORTE (IGUAIS AO ANTERIOR) ---
+  // --- OUTRAS FUNÇÕES DE SUPORTE ---
   function setupKeyboardShortcuts() {
     window.addEventListener('keydown', (e) => {
       if (e.key === 'Delete' || e.key === 'Backspace') {
@@ -927,7 +903,7 @@
       else if(file.type.startsWith('image/')) processImageFile(file);
   }
 
-  function handleGlobalPaste(e) { /* ... (Mesma lógica de paste) ... */
+  function handleGlobalPaste(e) { 
       const clipboardData = (e.clipboardData || e.originalEvent.clipboardData);
       const items = clipboardData.items;
       let handled = false;
@@ -1002,6 +978,17 @@
           canvas.requestRenderAll();
           saveHistory();
       });
+  }
+
+  function deleteActiveObject() {
+      const active = canvas.getActiveObjects();
+      if (active.length) {
+          canvas.discardActiveObject();
+          active.forEach((obj) => { canvas.remove(obj); });
+          canvas.requestRenderAll();
+          saveHistory();
+          closeSheets();
+      }
   }
 
   function updateGridConfigInCanvas() { canvas.gridConfig = { ...grid }; }
@@ -1416,5 +1403,4 @@
   }
 </script>
 </body>
-
 </html>
