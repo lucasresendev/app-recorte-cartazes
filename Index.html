@@ -1,0 +1,1424 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  
+  <title>Recorte em A3/A4</title>
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/webfont/1.6.26/webfont.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+  <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons|Material+Icons+Round" rel="stylesheet">
+  
+  <style>
+    :root {
+      --primary: #233476;
+      --accent: #fdd200;
+      --bg-dark: #121212;
+      --surface: #ffffff;
+      --handle: #e0e0e0;
+      --danger: #d32f2f;
+    }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; touch-action: none; }
+
+    body {
+      margin: 0; padding: 0;
+      background: var(--bg-dark);
+      font-family: 'Roboto', sans-serif;
+      height: 100vh; width: 100vw;
+      overflow: hidden;
+      display: flex; flex-direction: column;
+    }
+
+    .ui-faded {
+      opacity: 0.15 !important;
+      pointer-events: none !important;
+      transition: opacity 0.2s ease;
+    }
+
+    .sheet-ghost {
+      opacity: 0.2 !important;
+      transition: opacity 0.1s ease;
+    }
+
+    #header {
+      position: absolute; top: 0; left: 0; right: 0; height: 70px;
+      padding: 0 15px;
+      display: flex; justify-content: space-between; align-items: center;
+      z-index: 50;
+      background: linear-gradient(to bottom, rgba(0,0,0,0.9), transparent);
+      pointer-events: none;
+      transition: opacity 0.3s;
+    }
+    #header > * { pointer-events: auto; }
+
+    .logo-bg {
+      background: white; padding: 0 15px; border-radius: 12px;
+      display: flex; align-items: center; gap: 8px; height: 48px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .logo-text { color: var(--primary); font-family: 'Oswald', sans-serif; font-weight: 700; font-size: 1.1rem; text-transform: uppercase; letter-spacing: -0.5px; }
+    .logo-badge { background: var(--accent); color: var(--primary); padding: 2px 8px; border-radius: 6px; font-weight: 900; font-family: 'Roboto', sans-serif; font-size: 0.9rem; box-shadow: 2px 2px 0px rgba(35, 52, 118, 0.2); }
+
+    .export-container { position: relative; }
+    .btn-save {
+      background: var(--accent); color: var(--primary);
+      border: none; padding: 8px 20px; border-radius: 30px;
+      font-weight: 800; font-size: 0.85rem; text-transform: uppercase;
+      box-shadow: 0 4px 15px rgba(253, 210, 0, 0.4);
+      display: flex; align-items: center; gap: 5px; cursor: pointer;
+      transition: transform 0.1s; height: 40px;
+    }
+    .btn-save:active { transform: scale(0.95); }
+
+    .export-menu {
+        position: absolute;
+        top: 50px; right: 0;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        width: 220px;
+        display: none;
+        flex-direction: column;
+        overflow: hidden;
+        z-index: 100;
+        animation: fadeIn 0.2s ease;
+    }
+    .export-menu.show { display: flex; }
+    .export-item {
+        padding: 12px 15px;
+        border-bottom: 1px solid #eee;
+        color: #333;
+        font-size: 0.9rem;
+        cursor: pointer;
+        display: flex; align-items: center; gap: 10px;
+        font-weight: 500;
+    }
+    .export-item:last-child { border-bottom: none; }
+    .export-item:hover { background: #f5f5f5; color: var(--primary); }
+    .export-item i { font-size: 20px; color: var(--primary); }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
+    #mode-toggle {
+      position: absolute; top: 80px; right: 20px;
+      width: 48px; height: 48px;
+      background: var(--surface); border-radius: 50%;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      z-index: 40;
+      display: flex; justify-content: center; align-items: center;
+      transition: 0.2s; cursor: pointer;
+      color: var(--primary);
+    }
+    #mode-toggle.active-hand { background: var(--primary); color: white; transform: rotate(-15deg); }
+
+    @media (max-width: 768px) {
+        #mode-toggle { display: none; }
+    }
+
+    #canvas-wrapper { width: 100%; height: 100%; background: var(--bg-dark); }
+
+    #toolbar {
+      position: absolute; bottom: 20px; 
+      left: 20px; right: 20px; 
+      height: 70px;
+      background: rgba(255,255,255,0.98);
+      border-radius: 24px;
+      display: flex; justify-content: space-evenly; align-items: center;
+      z-index: 50;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+      transition: transform 0.3s, opacity 0.3s;
+    }
+    
+    @media (min-width: 768px) {
+      #toolbar { left: 50%; right: auto; width: 500px; transform: translateX(-50%); }
+      #toolbar.hidden { transform: translate(-50%, 150%); }
+    }
+    @media (max-width: 767px) {
+      #toolbar.hidden { transform: translateY(150%); }
+    }
+
+    .tool-group { display: flex; width: 100%; justify-content: space-evenly; }
+    .hidden-group { display: none; }
+    .tool-btn {
+      background: none; border: none; color: #666;
+      display: flex; flex-direction: column; align-items: center;
+      font-size: 0.7rem; font-weight: 600; gap: 4px; padding: 10px; cursor: pointer;
+    }
+    .tool-btn i { font-size: 28px; color: var(--primary); }
+    .tool-btn span { color: #555; }
+    
+    .sheet {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      background: var(--surface);
+      border-top-left-radius: 24px; border-top-right-radius: 24px;
+      padding: 0 24px 30px 24px;
+      transform: translateY(110%);
+      transition: transform 0.3s cubic-bezier(0.1, 0.7, 0.1, 1);
+      z-index: 60;
+      box-shadow: 0 -10px 50px rgba(0,0,0,0.5);
+      max-height: 80vh; 
+      display: flex; flex-direction: column;
+    }
+    @media (min-width: 768px) {
+      .sheet { left: 50%; right: auto; width: 500px; margin-left: -250px; border-radius: 24px 24px 0 0; }
+    }
+    .sheet.open { transform: translateY(0); }
+    
+    .drag-zone { width: 100%; padding: 15px 0; display: flex; justify-content: center; cursor: grab; }
+    .drag-handle { width: 50px; height: 5px; background: var(--handle); border-radius: 10px; }
+.sheet-content {
+    overflow-y: auto;
+    overflow-x: hidden; /* Força sumir rolagem lateral */
+    padding: 0 24px 30px 24px;
+}
+
+    .label-row { color: #888; font-size: 0.85rem; font-weight: 500; margin-bottom: 8px; margin-top: 15px; display:flex; align-items: center; gap: 6px; }
+    .label-row i { color: var(--primary); }
+    
+    select, input[type="number"] {
+      width: 100%; padding: 12px; border: 2px solid #eee; border-radius: 10px; 
+      font-size: 1rem; color: #333; outline: none; transition: border-color 0.2s;
+    }
+    select:focus, input[type="number"]:focus { border-color: var(--primary); }
+    
+    input[type="range"] { width: 100%; accent-color: var(--primary); cursor: pointer; height: 6px; }
+    input[type="range"] {
+    width: 100%;
+    box-sizing: border-box; /* Essencial */
+    max-width: 100%;
+}
+    .slider-val { font-weight: bold; color: var(--primary); min-width: 20px; text-align: center; }
+
+    .font-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 8px; }
+    .font-card {
+      background: #f9f9f9; border-radius: 8px; padding: 12px;
+      text-align: center; font-size: 14px; border: 2px solid transparent; cursor: pointer;
+    }
+    .font-card.active { border-color: var(--primary); background: #eef2ff; color: var(--primary); font-weight: bold; }
+
+.shape-grid {
+    display: grid;
+    /* Isso cria colunas que se ajustam. Mínimo de 70px por ícone */
+    grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); 
+    gap: 12px;
+    margin-top: 10px;
+    padding-bottom: 20px; /* Espaço extra no final */
+}
+
+.shape-btn {
+    aspect-ratio: 1;
+    background: #f5f5f5;
+    border-radius: 12px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: 0.2s;
+    /* Garante que o ícone interno não estoure */
+    overflow: hidden; 
+}
+.shape-btn i { font-size: 32px; color: #555; } /* Usaremos ícones do Material Icons para facilitar */
+    
+    /* CÍRCULO */
+    .s-circle { border-radius: 50%; }
+    /* TRIANGULO (usando clip-path) */
+    .s-triangle { clip-path: polygon(50% 0%, 0% 100%, 100% 100%); background: #555; width: 60%; height: 60%; }
+    /* ESTRELA */
+    .s-star { clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); background: #555; width: 70%; height: 70%; }
+    /* RECT */
+    .s-rect { border-radius: 4px; }
+
+    /* CONTROLES DE COR DA FORMA */
+    .color-row {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 10px 0; border-bottom: 1px solid #eee;
+    }
+    .color-picker-wrapper {
+        display: flex; align-items: center; gap: 10px;
+    }
+    input[type="color"] {
+        width: 40px; height: 40px; border: none; padding: 0; background: none; border-radius: 50%; cursor: pointer;
+    }
+    input[type="checkbox"] {
+        width: 20px; height: 20px; accent-color: var(--primary);
+    }
+
+
+    .preview-box {
+      background: #f5f5f5; border: 1px solid #e0e0e0; border-radius: 12px;
+      padding: 15px; text-align: center; margin-bottom: 20px; min-height: 80px;
+      display: flex; align-items: center; justify-content: center; overflow: hidden;
+    }
+    .preview-text { font-size: 28px; color: #333; white-space: nowrap; }
+
+    .sheet-layer-btn {
+      display: flex; align-items: center; gap: 15px; width: 100%;
+      padding: 16px; border: 1px solid #eee; border-radius: 12px;
+      background: #fdfdfd; color: #333; font-weight: 500;
+      margin-bottom: 8px; cursor: pointer;
+    }
+    .sheet-layer-btn i { color: var(--primary); font-size: 24px; }
+    .sheet-layer-btn:active { background: #f0f4ff; }
+
+    #cropper-modal {
+      position: fixed; top:0; left:0; width:100%; height:100%;
+      background: rgba(0,0,0,0.85); backdrop-filter: blur(5px);
+      z-index: 200; display: none; justify-content: center; align-items: center; padding: 20px;
+    }
+    .crop-window {
+      background: #1e1e1e; border-radius: 16px; display: flex; flex-direction: column;
+      overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+      width: 100%; max-width: 600px; height: 100%; max-height: 80vh;
+    }
+    .crop-area { flex: 1; background: #000; position: relative; overflow: hidden; }
+    #cropper-img { display: block; max-width: 100%; }
+    .crop-footer {
+      height: 70px; background: #252525; display: flex; justify-content: space-between; align-items: center;
+      padding: 0 20px; border-top: 1px solid #333;
+    }
+
+    #loader { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,1); z-index: 2000; display: none; flex-direction: column; justify-content: center; align-items: center; color: white; }
+    
+    #info-modal, #pdf-modal {
+      position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.6);
+      z-index: 300; display: none; justify-content: center; align-items: center;
+    }
+    .info-card {
+      background: white; padding: 30px; border-radius: 20px; text-align: center; width: 300px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3); position: relative;
+    }
+    .pdf-option {
+      background: #f0f4ff; border: 1px solid var(--primary); color: var(--primary);
+      padding: 15px; border-radius: 12px; margin-bottom: 10px; cursor: pointer;
+      font-weight: 600; transition: 0.2s;
+    }
+    .pdf-option:active { background: var(--primary); color: white; }
+
+    #pdf-selection-modal {
+      position: fixed; top:0; left:0; width:100%; height:100%;
+      background: rgba(0,0,0,0.9); z-index: 310;
+      display: none; flex-direction: column; 
+      padding: 20px;
+      overflow: hidden;
+    }
+    .pdf-grid-container {
+      flex: 1; 
+      width: 100%; max-width: 800px; margin: 0 auto;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      display: grid; 
+      grid-template-columns: repeat(auto-fill, 120px);
+      justify-content: center;
+      align-content: flex-start;
+      gap: 15px; padding: 20px 0;
+    }
+    .pdf-thumb-card {
+      background: #252525; border-radius: 8px; padding: 10px;
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+      cursor: pointer; transition: 0.2s; border: 2px solid transparent;
+      width: 100%; aspect-ratio: 1/1.4;
+    }
+    .pdf-thumb-card:hover { border-color: var(--accent); background: #333; }
+    .pdf-thumb-card img { 
+        width: 100%; height: auto; max-height: 100%; 
+        object-fit: contain; 
+        border-radius: 4px; background: white; 
+    }
+    .pdf-thumb-card span { color: #fff; font-size: 0.8rem; font-weight: 500; }
+    
+    .modal-header {
+      width: 100%; max-width: 800px; margin: 0 auto;
+      display: flex; justify-content: space-between; align-items: center;
+      color: white; margin-bottom: 10px; flex-shrink: 0;
+    }
+
+    @keyframes spin { from {transform:rotate(0deg);} to {transform:rotate(360deg);} }
+  </style>
+</head>
+<body>
+
+  <div id="loader">
+    <i class="material-icons-round" style="font-size: 48px; color: var(--accent); animation: spin 1s infinite linear">donut_large</i>
+    <p id="loader-msg" style="margin-top:15px; font-weight:500; color: #fff;">Carregando...</p>
+  </div>
+
+  <div id="info-modal" onclick="this.style.display='none'">
+    <div class="info-card" onclick="event.stopPropagation()">
+      <h2 style="color:var(--primary); margin-top:0;">Criador de Cartazes</h2>
+      <p style="color:#666; font-size:0.9rem;">Desenvolvido por<br><strong>Lucas Resende</strong></p>
+      <div style="margin: 20px 0; height:1px; background:#eee;"></div>
+      <p style="font-size:0.8rem; color:#888;">Suporte:<br>lucas.pinda@progressao.com</p>
+      <button onclick="document.getElementById('info-modal').style.display='none'" style="background:var(--primary); color:white; border:none; padding:10px 30px; border-radius:20px; cursor:pointer; margin-top:10px;">Fechar</button>
+    </div>
+  </div>
+
+  <div id="pdf-modal" style="display:none;">
+    <div class="info-card" onclick="event.stopPropagation()">
+      <h3 style="color:var(--primary); margin-top:0;">PDF com múltiplas páginas</h3>
+      <p style="color:#666; margin-bottom:20px;">Como deseja importar?</p>
+      
+      <div class="pdf-option" onclick="finishPDFImport('single')">
+        Selecionar Página Única
+      </div>
+      <div class="pdf-option" onclick="finishPDFImport('all')">
+        Todas as Páginas (Distribuir no Grid)
+      </div>
+      <button onclick="document.getElementById('pdf-modal').style.display='none'; document.getElementById('loader').style.display='none';" style="background:none; border:none; color:#999; margin-top:10px; cursor:pointer;">Cancelar</button>
+    </div>
+  </div>
+
+  <div id="pdf-selection-modal">
+    <div class="modal-header">
+        <h3 style="margin:0;">Selecione a página</h3>
+        <button onclick="document.getElementById('pdf-selection-modal').style.display='none'" style="background:none; border:none; color:white; cursor:pointer;">
+            <i class="material-icons-round">close</i>
+        </button>
+    </div>
+    <div id="pdf-thumb-grid" class="pdf-grid-container" onclick="event.stopPropagation()"></div>
+  </div>
+
+  <div id="cropper-modal">
+    <div class="crop-window">
+      <div class="crop-area"><img id="cropper-img" src=""></div>
+      <div class="crop-footer">
+        <button onclick="cancelCrop()" style="background:none; border:none; color:#ccc; font-weight:bold; cursor:pointer;">CANCELAR</button>
+        <button onclick="applyCrop()" style="background:var(--accent); border:none; color:var(--primary); padding:10px 25px; border-radius:20px; font-weight:800; cursor:pointer; display:flex; align-items:center; gap:5px;">
+          <i class="material-icons-round">check</i> CORTAR
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="header">
+    <div class="logo-bg">
+        <span class="logo-text">Recorte em</span>
+        <span class="logo-badge">A3/A4</span>
+    </div>
+
+    <div style="display:flex; align-items:center; gap:10px;" class="export-container">
+        <div onclick="document.getElementById('info-modal').style.display='flex'" style="width:30px; height:30px; border-radius:50%; border:2px solid rgba(255,255,255,0.3); display:flex; justify-content:center; align-items:center; color:white; font-weight:bold; cursor:pointer;">i</div>
+        
+        <button class="btn-save" onclick="toggleExportMenu()">
+          <i class="material-icons-round" style="font-size:18px; color:var(--primary)">save</i> Salvar
+        </button>
+
+        <div id="export-menu" class="export-menu">
+            <div class="export-item" onclick="startExport('pdf')">
+                <i class="material-icons-round">picture_as_pdf</i> Baixar PDF (Padrão)
+            </div>
+            <div class="export-item" onclick="startExport('pdf-split')">
+                <i class="material-icons-round">description</i> Baixar PDFs Separados
+            </div>
+            <div class="export-item" onclick="startExport('img-split')">
+                <i class="material-icons-round">collections</i> Baixar Imagens (Págs)
+            </div>
+            <div class="export-item" onclick="startExport('img-single')">
+                <i class="material-icons-round">image</i> Baixar Imagem Única
+            </div>
+        </div>
+    </div>
+  </div>
+  
+  <input type="file" id="projectIn" hidden accept=".json" onchange="loadProject(this)">
+
+  <div id="mode-toggle" onclick="toggleHandMode()">
+    <i class="material-icons-round" id="mode-icon">pan_tool</i>
+  </div>
+
+  <div id="canvas-wrapper">
+    <canvas id="c"></canvas>
+  </div>
+
+  <div id="toolbar">
+    <div id="toolbar-main" class="tool-group fade-in">
+      <button class="tool-btn" onclick="openSheet('layoutSheet')">
+        <i class="material-icons-round">dashboard_customize</i> <span>Layout</span>
+      </button>
+      <button class="tool-btn" onclick="toggleAddMenu()">
+        <i class="material-icons-round" style="font-size:32px; color:var(--primary)">add_circle</i> <span>Inserir</span>
+      </button>
+      <button class="tool-btn" onclick="resetView()">
+        <i class="material-icons-round">center_focus_strong</i> <span>Centralizar</span>
+      </button>
+    </div>
+
+    <div id="toolbar-add" class="tool-group hidden-group fade-in">
+      <button class="tool-btn" onclick="toggleAddMenu()">
+        <i class="material-icons-round">arrow_back</i> <span>Voltar</span>
+      </button>
+      <button class="tool-btn" onclick="document.getElementById('fileIn').click()">
+        <i class="material-icons-round">perm_media</i> <span>Mídia</span>
+      </button>
+      <button class="tool-btn" onclick="openSheet('shapeSheet')">
+        <i class="material-icons-round">category</i> <span>Formas</span>
+      </button>
+      <button class="tool-btn" onclick="createLabel()">
+        <i class="material-icons-round">title</i> <span>Texto</span>
+      </button>
+      <button class="tool-btn" onclick="document.getElementById('projectIn').click()">
+        <i class="material-icons-round">restore</i> <span>Projeto</span>
+      </button>
+    </div>
+  </div>
+  
+  <input type="file" id="fileIn" hidden accept="image/*, application/pdf, image/svg+xml" onchange="handleFile(this)">
+
+  <div id="layerSheet" class="sheet">
+    <div class="drag-zone"><div class="drag-handle"></div></div>
+    <div class="sheet-content">
+      <div class="label-row" style="margin-top:0"><i class="material-icons-round">layers</i> Organizar Camadas</div>
+      
+      <button class="sheet-layer-btn" onclick="layerAction('front')">
+        <i class="material-icons-round">flip_to_front</i> Trazer para a Frente
+      </button>
+      <button class="sheet-layer-btn" onclick="layerAction('up')">
+        <i class="material-icons-round">keyboard_arrow_up</i> Subir um Nível
+      </button>
+      <button class="sheet-layer-btn" onclick="layerAction('down')">
+        <i class="material-icons-round">keyboard_arrow_down</i> Descer um Nível
+      </button>
+      <button class="sheet-layer-btn" onclick="layerAction('back')">
+        <i class="material-icons-round">flip_to_back</i> Enviar para o Fundo
+      </button>
+    </div>
+  </div>
+
+  <div id="layoutSheet" class="sheet">
+    <div class="drag-zone"><div class="drag-handle"></div></div>
+    <div class="sheet-content">
+      
+      <div class="label-row"><i class="material-icons-round">aspect_ratio</i> Tamanho</div>
+      <select id="pageSize" onchange="updateGrid()">
+        <option value="a3" selected>A3 (Padrão)</option>
+        <option value="a4">A4 (Pequeno)</option>
+      </select>
+
+      <div class="label-row"><i class="material-icons-round">screen_rotation</i> Orientação</div>
+      <select id="orient" onchange="updateGrid()">
+        <option value="portrait">Retrato (Vertical)</option>
+        <option value="landscape">Paisagem (Horizontal)</option>
+      </select>
+      
+      <div style="display:flex; gap:20px; margin-top:15px">
+        <div style="flex:1">
+          <div class="label-row">
+            <i class="material-icons-round">view_column</i> Colunas: <span id="cols-txt" class="slider-val">2</span>
+          </div>
+          <input type="range" id="cols" value="2" min="1" max="10" 
+                 oninput="liveGridUpdate(this, 'cols-txt')" 
+                 onchange="gridUpdateEnd()"
+                 ontouchend="gridUpdateEnd()" 
+                 onmouseup="gridUpdateEnd()">
+        </div>
+        <div style="flex:1">
+          <div class="label-row">
+            <i class="material-icons-round">table_rows</i> Linhas: <span id="rows-txt" class="slider-val">1</span>
+          </div>
+          <input type="range" id="rows" value="1" min="1" max="10" 
+                 oninput="liveGridUpdate(this, 'rows-txt')" 
+                 onchange="gridUpdateEnd()"
+                 ontouchend="gridUpdateEnd()"
+                 onmouseup="gridUpdateEnd()">
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div id="textSheet" class="sheet">
+    <div class="drag-zone"><div class="drag-handle"></div></div>
+    <div class="sheet-content">
+      <div class="label-row" style="margin-top:0">Preview</div>
+      <div class="preview-box"><span id="previewText" class="preview-text">Abc 123</span></div>
+      <div class="label-row"><i class="material-icons-round" style="font-size:16px">space_bar</i> Espaçamento</div>
+      <input type="range" id="txtSpacing" min="-50" max="800" step="10" oninput="updateActiveText('spacing')">
+      <div class="label-row"><i class="material-icons-round" style="font-size:16px">font_download</i> Fonte</div>
+      <div class="font-grid" id="fontList"></div>
+    </div>
+  </div>
+
+<div id="shapeSheet" class="sheet">
+    <div class="drag-zone"><div class="drag-handle"></div></div>
+    <div class="sheet-content">
+        <div class="label-row" style="margin-top:0"><i class="material-icons-round">category</i> Escolher Forma</div>
+        <div class="shape-grid">
+            <div class="shape-btn" onclick="addShape('rect')"><i class="material-icons-round">square</i></div>
+            <div class="shape-btn" onclick="addShape('circle')"><i class="material-icons-round">circle</i></div>
+            
+            <div class="shape-btn" onclick="addShape('triangle')">
+                <i class="material-icons-round" style="transform: rotate(-90deg); font-size: 46px; margin-left:-3px;">play_arrow</i>
+            </div>
+            
+            <div class="shape-btn" onclick="addShape('star')"><i class="material-icons-round">star</i></div>
+            <div class="shape-btn" onclick="addShape('heart')"><i class="material-icons-round">favorite</i></div>
+            <div class="shape-btn" onclick="addShape('bubble')"><i class="material-icons-round">chat_bubble</i></div>
+            <div class="shape-btn" onclick="addShape('pentagon')"><i class="material-icons-round">pentagon</i></div>
+        </div>
+    </div>
+  </div>
+
+<div id="shapeEditSheet" class="sheet">
+    <div class="drag-zone"><div class="drag-handle"></div></div>
+    <div class="sheet-content">
+        <div class="label-row" style="margin-top:0"><i class="material-icons-round">palette</i> Propriedades da Forma</div>
+        
+        <div class="color-row">
+            <span>Preenchimento</span>
+            <div class="color-picker-wrapper">
+                <input type="checkbox" id="shapeFillCheck" onchange="updateShapeProps()">
+                <input type="color" id="shapeFillColor" oninput="updateShapeProps()">
+            </div>
+        </div>
+
+        <div class="color-row">
+            <span>Cor da Borda</span>
+            <div class="color-picker-wrapper">
+                <input type="color" id="shapeStrokeColor" oninput="updateShapeProps()">
+            </div>
+        </div>
+
+        <div class="label-row" style="margin-top:15px">Espessura da Borda: <span id="strokeWidthTxt" style="color:var(--primary)">0</span></div>
+        <input type="range" id="shapeStrokeWidth" min="0" max="50" step="1" oninput="updateShapeProps()">
+
+        <div id="radiusContainer" style="display:none;">
+            <div class="label-row" style="margin-top:15px">
+                <i class="material-icons-round" style="font-size:16px">rounded_corner</i> Arredondamento
+            </div>
+            <input type="range" id="shapeRadius" min="0" max="100" step="1" oninput="updateShapeProps()">
+        </div>
+    </div>
+  </div>
+
+<script>
+ // --- CONFIGURAÇÕES GLOBAIS ---
+  const SIZES = { 'a4': { w: 210, h: 297 }, 'a3': { w: 297, h: 420 } };
+  const PXM = 3; 
+  let canvas;
+  let isHandMode = false; 
+  let grid = { w:0, h:0, cols:2, rows:1, orient:'portrait', size: 'a3' };
+  let bgObj = null;
+  let isEditing = false; 
+  
+  let _clipboard = null;
+  let historyUndo = [];
+  let historyRedo = [];
+  let isHistoryProcessing = false;
+  let pasteCount = 0;
+  let lastCopiedText = ""; 
+
+  let cropper;
+  let activeImageObj = null;
+  const fonts = ["Roboto", "Oswald", "Anton", "Lobster", "Pacifico", "Bangers", "Open Sans", "Montserrat", "Lato", "Inter"];
+
+  let tempLoadedPDF = null;
+
+  // --- Dicionário de caminhos SVG (Sem a seta) ---
+  const SHAPE_PATHS = {
+    'heart': 'M 10,30 A 20,20 0,0,1 50,30 A 20,20 0,0,1 90,30 Q 90,60 50,90 Q 10,60 10,30 z',
+    'bubble': 'M 20 20 H 80 A 10 10 0 0 1 90 30 V 70 A 10 10 0 0 1 80 80 H 40 L 20 95 V 80 H 20 A 10 10 0 0 1 10 70 V 30 A 10 10 0 0 1 20 20 Z',
+    'star': 'M 50 10 L 61 35 L 98 35 L 68 57 L 79 91 L 50 70 L 21 91 L 32 57 L 2 35 L 39 35 Z'
+  };
+
+  // --- INICIALIZAÇÃO ---
+  window.onload = () => {
+    setupCustomControls(); 
+    initCanvas();
+    loadFonts();
+    setupDraggableSheets();
+    setupKeyboardShortcuts();
+    setupDragDrop(); 
+    document.addEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('touchstart', handleOutsideClick);
+    window.addEventListener('paste', handleGlobalPaste);
+    
+    setTimeout(() => { updateGrid(); }, 100);
+  };
+
+  // --- INTERFACE ---
+  function toggleExportMenu() {
+      const menu = document.getElementById('export-menu');
+      menu.classList.toggle('show');
+  }
+
+  function handleOutsideClick(e) {
+    if (!e.target.closest('.export-container')) {
+        document.getElementById('export-menu').classList.remove('show');
+    }
+    if(!e.target.closest('.sheet') && !e.target.closest('#toolbar') && !e.target.closest('.crop-window')) {
+       if(e.target.tagName === 'CANVAS') closeSheets();
+    }
+  }
+
+  // --- CANVAS INIT ---
+  function initCanvas() {
+    canvas = new fabric.Canvas('c', {
+      width: window.innerWidth, height: window.innerHeight,
+      backgroundColor: 'transparent',
+      preserveObjectStacking: true, selection: true,
+      centeredScaling: true, uniScaleTransform: true,
+      allowTouchScrolling: false 
+    });
+
+    window.addEventListener('resize', () => {
+      canvas.setDimensions({ width: window.innerWidth, height: window.innerHeight });
+    });
+
+    // Eventos Padrão
+    saveHistory();
+    canvas.on('object:added', (e) => { if(!isHistoryProcessing && e.target !== bgObj) saveHistory(); });
+    canvas.on('object:modified', (e) => { if(!isHistoryProcessing) saveHistory(); });
+    canvas.on('object:removed', (e) => { if(!isHistoryProcessing) saveHistory(); });
+
+    // UI Fade e Proteção Multitoque
+    canvas.on('object:moving', (opt) => {
+      if (opt.e.touches && opt.e.touches.length > 1) {
+          canvas.discardActiveObject();
+          canvas.requestRenderAll();
+          return;
+      }
+      document.getElementById('toolbar').classList.add('ui-faded');
+      document.getElementById('header').classList.add('ui-faded');
+      document.getElementById('mode-toggle').classList.add('ui-faded');
+    });
+
+    canvas.on('mouse:up', () => { 
+      document.getElementById('toolbar').classList.remove('ui-faded');
+      document.getElementById('header').classList.remove('ui-faded');
+      document.getElementById('mode-toggle').classList.remove('ui-faded');
+      if(!canvas.getActiveObject()) setMaskMode('idle'); 
+    });
+
+    canvas.on('mouse:down', (opt) => {
+        if (opt.e.touches && opt.e.touches.length > 1) {
+            canvas.discardActiveObject();
+            return;
+        }
+        if(isHandMode) return;
+        if (!opt.target || opt.target === bgObj) {
+            canvas.discardActiveObject();
+            canvas.requestRenderAll();
+            setMaskMode('idle');
+            closeSheets();
+        } else {
+            setMaskMode('editing');
+        }
+    });
+
+    canvas.on('selection:created', () => { setMaskMode('editing'); });
+    canvas.on('selection:cleared', () => { setMaskMode('idle'); closeSheets(); });
+    canvas.on('after:render', renderOverlay);
+    
+    setupHammerGestures();
+  }
+
+  // --- CONTROLES (EDITAR/DELETAR) ---
+  function setupCustomControls() {
+    const BOTAO_SIZE = 40; 
+    const renderIcon = (iconName, color) => function(ctx, left, top, styleOverride, fabricObject) {
+        const size = this.cornerSize; 
+        ctx.save(); ctx.translate(left, top); ctx.rotate(fabric.util.degreesToRadians(fabricObject.angle));
+        ctx.beginPath(); ctx.arc(0, 0, size / 2, 0, 2 * Math.PI, false);
+        ctx.fillStyle = color; ctx.fill();
+        ctx.shadowColor = 'rgba(0,0,0,0.3)'; ctx.shadowBlur = 4; ctx.fill(); 
+        ctx.shadowBlur = 0; ctx.font = "24px 'Material Icons'"; 
+        ctx.fillStyle = "white"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.fillText(iconName, 0, 0); ctx.restore();
+    };
+    
+    const clickAreaConfig = { cursorStyle: 'pointer', cornerSize: BOTAO_SIZE, sizeX: BOTAO_SIZE, sizeY: BOTAO_SIZE, touchCornerSize: BOTAO_SIZE, withConnection: false };
+
+    fabric.Object.prototype.controls.editControl = new fabric.Control({
+        ...clickAreaConfig, x: -0.5, y: -0.5, offsetY: -24, offsetX: -24, mouseUpHandler: handleEditClick,
+        render: function(ctx, left, top, styleOverride, fabricObject) {
+            const isImg = fabricObject.type === 'image';
+            renderIcon(isImg ? 'content_cut' : 'edit', isImg ? '#f57c00' : '#233476').call(this, ctx, left, top, styleOverride, fabricObject);
+        }
+    });
+    fabric.Object.prototype.controls.deleteControl = new fabric.Control({
+        ...clickAreaConfig, x: 0.5, y: -0.5, offsetY: -24, offsetX: 24, mouseUpHandler: deleteObject,
+        render: renderIcon('close', '#d32f2f')
+    });
+    fabric.Object.prototype.controls.layerControl = new fabric.Control({
+        ...clickAreaConfig, x: -0.5, y: 0.5, offsetY: 24, offsetX: -24, mouseUpHandler: (e, t) => { openSheet('layerSheet'); return true; },
+        render: renderIcon('layers', '#233476')
+    });
+    fabric.Object.prototype.set({
+        transparentCorners: false, cornerColor: '#ffffff', cornerStrokeColor: '#999',
+        borderColor: '#233476', padding: 15, borderDashArray: [4, 4], centeredScaling: false
+    });
+  }
+
+  function deleteObject() { deleteActiveObject(); }
+  
+  function handleEditClick(eventData, transform) {
+    const target = transform.target;
+    // Texto
+    if(target.type === 'i-text' || target.type === 'text') {
+      openSheet('textSheet');
+      document.getElementById('txtSpacing').value = target.charSpacing;
+      document.getElementById('previewText').style.fontFamily = target.fontFamily;
+      document.getElementById('previewText').style.letterSpacing = (target.charSpacing / 20) + 'px'; 
+      highlightFont(target.fontFamily);
+    } 
+    // Imagem
+    else if (target.type === 'image') {
+        startCrop(target);
+    }
+    // Formas (AQUI ESTAVA O PROBLEMA - CORRIGIDO)
+    // Adicionado 'path' para formas complexas e 'polygon' para pentagono/triangulo
+    else if (['rect', 'circle', 'triangle', 'polygon', 'path'].includes(target.type)) {
+        openShapeEditor(target);
+    }
+  }
+  
+  // --- LÓGICA DE FORMAS E EDITOR ---
+  function addShape(type) {
+      let shape;
+      const commonProps = { 
+          left: grid.w/2, top: grid.h/2, 
+          fill: '#233476', 
+          originX: 'center', originY: 'center',
+          strokeWidth: 0, stroke: '#000000',
+          strokeUniform: true, // Garante que a borda não estique
+          noScaleCache: false
+      };
+      const size = 200;
+
+      if(type === 'rect') {
+          shape = new fabric.Rect({ ...commonProps, width: size, height: size, rx: 0, ry: 0 });
+      } else if (type === 'circle') {
+          shape = new fabric.Circle({ ...commonProps, radius: size/2 });
+      } else if (type === 'triangle') {
+          shape = new fabric.Triangle({ ...commonProps, width: size, height: size });
+      } else if (type === 'pentagon') {
+          const points = [];
+          for (let i = 0; i < 5; i++) {
+             points.push({
+                 x: (size/2) * Math.cos(i * 2 * Math.PI / 5 - Math.PI/2),
+                 y: (size/2) * Math.sin(i * 2 * Math.PI / 5 - Math.PI/2)
+             });
+          }
+          shape = new fabric.Polygon(points, { ...commonProps });
+      } else if (SHAPE_PATHS[type]) {
+          shape = new fabric.Path(SHAPE_PATHS[type], { ...commonProps });
+          const scale = size / Math.max(shape.width, shape.height);
+          shape.set({ scaleX: scale, scaleY: scale });
+      }
+
+      if(shape) {
+          addToCanvas(shape);
+          toggleAddMenu();
+      }
+  }
+
+  function openShapeEditor(obj) {
+      openSheet('shapeEditSheet');
+      
+      const fillCheck = document.getElementById('shapeFillCheck');
+      const fillColor = document.getElementById('shapeFillColor');
+      const strokeColor = document.getElementById('shapeStrokeColor');
+      const strokeWidth = document.getElementById('shapeStrokeWidth');
+      const radiusContainer = document.getElementById('radiusContainer');
+      const radiusSlider = document.getElementById('shapeRadius');
+
+      // Preenchimento
+      if(obj.fill === 'transparent' || !obj.fill) {
+          fillCheck.checked = false;
+          fillColor.value = '#000000'; 
+      } else {
+          fillCheck.checked = true;
+          // Tenta aplicar a cor. Se for gradiente ou pattern, pode dar erro visual no input color, 
+          // mas funciona para cores hex simples.
+          fillColor.value = obj.fill; 
+      }
+
+      // Borda
+      if (obj.stroke && obj.stroke !== 'transparent') {
+          strokeColor.value = obj.stroke;
+      } else {
+          strokeColor.value = '#000000';
+      }
+      
+      strokeWidth.value = obj.strokeWidth || 0;
+      document.getElementById('strokeWidthTxt').innerText = strokeWidth.value;
+
+      // Arredondamento (Só para Retângulos)
+      if (obj.type === 'rect') {
+          radiusContainer.style.display = 'block';
+          radiusSlider.value = obj.rx || 0;
+      } else {
+          radiusContainer.style.display = 'none';
+      }
+  }
+
+  function updateShapeProps() {
+      const obj = canvas.getActiveObject();
+      if(!obj) return;
+
+      const fillCheck = document.getElementById('shapeFillCheck').checked;
+      const fillColor = document.getElementById('shapeFillColor').value;
+      const strokeColor = document.getElementById('shapeStrokeColor').value;
+      const strokeWidth = parseInt(document.getElementById('shapeStrokeWidth').value);
+      const radius = parseInt(document.getElementById('shapeRadius').value);
+      
+      document.getElementById('strokeWidthTxt').innerText = strokeWidth;
+
+      obj.set('fill', fillCheck ? fillColor : 'transparent');
+      
+      // Lógica da Borda
+      if(strokeWidth > 0) {
+          obj.set('stroke', strokeColor);
+          obj.set('strokeWidth', strokeWidth);
+          obj.set('strokeUniform', true);
+          // Miter garante pontas afiadas
+          obj.set('strokeLineJoin', 'miter'); 
+          obj.set('strokeMiterLimit', 10);
+      } else {
+          obj.set('strokeWidth', 0);
+          obj.set('stroke', 'transparent');
+      }
+
+      // Arredondamento
+      if (obj.type === 'rect') {
+          obj.set({ rx: radius, ry: radius });
+      } 
+
+      canvas.requestRenderAll();
+  }
+
+  // --- OUTRAS FUNÇÕES DE SUPORTE (IGUAIS AO ANTERIOR) ---
+  function setupKeyboardShortcuts() {
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+         const active = canvas.getActiveObject();
+         if (active && !active.isEditing) deleteActiveObject();
+      }
+      if (e.key === 'Escape') {
+          canvas.discardActiveObject(); canvas.requestRenderAll(); closeSheets();
+      }
+      if (e.ctrlKey || e.metaKey) {
+          switch(e.code) {
+              case 'KeyC': copyObject(); break;
+              case 'KeyZ': e.preventDefault(); undo(); break;
+              case 'KeyY': e.preventDefault(); redo(); break;
+          }
+      }
+      if(e.code === 'Space' && !e.repeat && !isHandMode) toggleHandMode();
+    });
+    window.addEventListener('keyup', (e) => {
+      if(e.code === 'Space' && isHandMode) toggleHandMode();
+    });
+  }
+
+  function processUploadedFile(file) {
+      if(!file) return;
+      if(file.type === 'application/pdf') processPDFFile(file);
+      else if(file.type === 'image/svg+xml') processSVGFile(file);
+      else if(file.type.startsWith('image/')) processImageFile(file);
+  }
+
+  function handleGlobalPaste(e) { /* ... (Mesma lógica de paste) ... */
+      const clipboardData = (e.clipboardData || e.originalEvent.clipboardData);
+      const items = clipboardData.items;
+      let handled = false;
+      for (let index in items) {
+          const item = items[index];
+          if (item.kind === 'file') {
+              const file = item.getAsFile();
+              if (file) { processUploadedFile(file); handled = true; }
+          }
+      }
+      if (!handled) {
+          for (let index in items) {
+              const item = items[index];
+              if (item.kind === 'string' && item.type.match('^text/plain')) {
+                  item.getAsString((s) => { processPasteText(s); });
+                  handled = true; break; 
+              }
+          }
+      }
+      if (!handled && _clipboard) { pasteObject(); e.preventDefault(); }
+  }
+
+  function processPasteText(text) {
+      const isInternalMatch = (_clipboard && text === lastCopiedText);
+      const isShapePlaceholder = (_clipboard && text === "Elemento Gráfico");
+      if (isInternalMatch || isShapePlaceholder) { pasteObject(); } 
+      else {
+          if (text && text.trim().length > 0) {
+              const t = new fabric.IText(text, { fontFamily: 'Roboto', fontSize: 60, left: grid.w/2, top: grid.h/2, originX: 'center', originY: 'center', fill: '#000000' });
+              addToCanvas(t);
+          }
+      }
+  }
+
+  function setupDragDrop() {
+      const dropZone = document.body;
+      dropZone.addEventListener('dragover', (e) => { e.preventDefault(); e.stopPropagation(); });
+      dropZone.addEventListener('drop', (e) => {
+          e.preventDefault(); e.stopPropagation();
+          if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+              closeSheets();
+              Array.from(e.dataTransfer.files).forEach(file => processUploadedFile(file));
+          }
+      });
+  }
+
+  async function copyObject() {
+      const active = canvas.getActiveObject();
+      if (active) {
+          active.clone((cloned) => { _clipboard = cloned; pasteCount = 0; });
+          let textToCopy = "Elemento Gráfico"; 
+          if (active.type === 'i-text' || active.type === 'text' || active.type === 'textbox') textToCopy = active.text;
+          lastCopiedText = textToCopy;
+          try { await navigator.clipboard.writeText(textToCopy); } catch (err) { console.log("Erro clipboard", err); }
+      }
+  }
+
+  function pasteObject() {
+      if (!_clipboard) return;
+      _clipboard.clone((clonedObj) => {
+          canvas.discardActiveObject();
+          pasteCount++;
+          const offset = pasteCount * 20; 
+          clonedObj.set({ left: _clipboard.left + offset, top: _clipboard.top + offset, evented: true });
+          if(clonedObj.left > grid.w || clonedObj.top > grid.h) { clonedObj.set({ left: grid.w/2, top: grid.h/2 }); pasteCount = 0; }
+          if (clonedObj.type === 'activeSelection') {
+              clonedObj.canvas = canvas;
+              clonedObj.forEachObject((obj) => { canvas.add(obj); });
+              clonedObj.setCoords();
+          } else { canvas.add(clonedObj); }
+          canvas.setActiveObject(clonedObj);
+          canvas.requestRenderAll();
+          saveHistory();
+      });
+  }
+
+  function updateGridConfigInCanvas() { canvas.gridConfig = { ...grid }; }
+  function saveHistory() {
+      if (isHistoryProcessing) return;
+      if (historyUndo.length > 10) historyUndo.shift(); 
+      updateGridConfigInCanvas(); 
+      historyUndo.push(JSON.stringify(canvas.toJSON(['isBackground', 'gridConfig', 'id'])));
+      historyRedo = []; 
+  }
+  function restoreCanvasState(content) {
+      canvas.loadFromJSON(content, () => {
+          canvas.renderAll();
+          const objs = canvas.getObjects();
+          const foundBg = objs.find(o => o.isBackground);
+          if (foundBg) { bgObj = foundBg; bgObj.selectable = false; bgObj.evented = false; canvas.sendToBack(bgObj); } 
+          else { updateGrid(); }
+          if (canvas.gridConfig) {
+              grid = canvas.gridConfig;
+              document.getElementById('pageSize').value = grid.size;
+              document.getElementById('orient').value = grid.orient;
+              document.getElementById('cols').value = grid.cols;
+              document.getElementById('rows').value = grid.rows;
+              document.getElementById('cols-txt').innerText = grid.cols;
+              document.getElementById('rows-txt').innerText = grid.rows;
+              resetView();
+          }
+          isHistoryProcessing = false;
+      });
+  }
+  function undo() {
+      if (historyUndo.length > 0) {
+          isHistoryProcessing = true; updateGridConfigInCanvas();
+          historyRedo.push(JSON.stringify(canvas.toJSON(['isBackground', 'gridConfig'])));
+          restoreCanvasState(historyUndo.pop());
+      }
+  }
+  function redo() {
+      if (historyRedo.length > 0) {
+          isHistoryProcessing = true; updateGridConfigInCanvas();
+          historyUndo.push(JSON.stringify(canvas.toJSON(['isBackground', 'gridConfig'])));
+          restoreCanvasState(historyRedo.pop());
+      }
+  }
+
+  function setupHammerGestures() {
+    let mouseDragging = false, mouseStartAnchor = null; 
+    canvas.on('mouse:down', function(opt) {
+        if(isHandMode && !opt.target) { 
+            mouseDragging = true;
+            const inv = fabric.util.invertTransform(canvas.viewportTransform);
+            mouseStartAnchor = fabric.util.transformPoint({x: opt.e.clientX, y: opt.e.clientY}, inv);
+            canvas.defaultCursor = 'grabbing';
+        }
+    });
+    canvas.on('mouse:move', function(opt) {
+        if(mouseDragging && isHandMode && mouseStartAnchor) {
+            const zoom = canvas.getZoom();
+            const panX = opt.e.clientX - mouseStartAnchor.x * zoom;
+            const panY = opt.e.clientY - mouseStartAnchor.y * zoom;
+            canvas.setViewportTransform([zoom, 0, 0, zoom, panX, panY]);
+            canvas.requestRenderAll();
+        }
+    });
+    canvas.on('mouse:up', () => { mouseDragging = false; if(isHandMode) canvas.defaultCursor = 'grab'; });
+    canvas.on('mouse:wheel', function(opt) {
+        let z = canvas.getZoom() * (0.999 ** opt.e.deltaY);
+        if(z > 10) z = 10; if(z < 0.05) z = 0.05;
+        canvas.zoomToPoint({x:opt.e.offsetX, y:opt.e.offsetY}, z);
+        opt.e.preventDefault(); opt.e.stopPropagation();
+    });
+    const hammer = new Hammer.Manager(canvas.upperCanvasEl);
+    const pinch = new Hammer.Pinch();
+    const pan2 = new Hammer.Pan({ direction: Hammer.DIRECTION_ALL, pointers: 2, threshold: 0 });
+    hammer.add([pinch, pan2]);
+    pinch.recognizeWith(pan2); pan2.recognizeWith(pinch);
+    let gestureStartZoom = 1, gestureAnchor = null, isGesturing = false, latestScale = 1;
+    function onGestureStart(ev) {
+        if(isGesturing) return; isGesturing = true;
+        canvas.discardActiveObject(); canvas.selection = false; canvas.forEachObject(o => o.selectable = false);
+        canvas.requestRenderAll(); gestureStartZoom = canvas.getZoom(); latestScale = 1;
+        const inv = fabric.util.invertTransform(canvas.viewportTransform);
+        gestureAnchor = fabric.util.transformPoint({x: ev.center.x, y: ev.center.y}, inv);
+    }
+    function onGestureMove(ev) {
+        if(!isGesturing || !gestureAnchor) return;
+        if (ev.type === 'pinchmove') { latestScale = ev.scale; }
+        const currentCenter = ev.center;
+        let newZoom = gestureStartZoom * latestScale;
+        if(newZoom > 10) newZoom = 10; if(newZoom < 0.05) newZoom = 0.05;
+        const panX = currentCenter.x - gestureAnchor.x * newZoom;
+        const panY = currentCenter.y - gestureAnchor.y * newZoom;
+        canvas.setViewportTransform([newZoom, 0, 0, newZoom, panX, panY]);
+        canvas.requestRenderAll();
+    }
+    function onGestureEnd(ev) {
+        isGesturing = false; gestureAnchor = null;
+        if(!isHandMode) { canvas.selection = true; canvas.forEachObject(o => { if(o!==bgObj && !o.isDimensionIndicator) o.selectable = true; }); }
+    }
+    hammer.on('pinchstart panstart', onGestureStart);
+    hammer.on('pinchmove panmove', onGestureMove);
+    hammer.on('pinchend panend', onGestureEnd);
+  }
+
+  function liveGridUpdate(input, labelId) { document.getElementById(labelId).innerText = input.value; toggleSliderGhostMode(true); updateGrid(); }
+  function gridUpdateEnd() { toggleSliderGhostMode(false); updateGrid(); }
+  function toggleSliderGhostMode(active) {
+      const uiElements = [document.getElementById('header'), document.getElementById('toolbar'), document.getElementById('mode-toggle')];
+      const sheet = document.getElementById('layoutSheet');
+      if (active) { uiElements.forEach(el => el.classList.add('ui-faded')); sheet.classList.add('sheet-ghost'); } 
+      else { uiElements.forEach(el => el.classList.remove('ui-faded')); sheet.classList.remove('sheet-ghost'); }
+  }
+  function updateGrid() {
+    grid.orient = document.getElementById('orient').value;
+    grid.size = document.getElementById('pageSize').value;
+    grid.cols = parseInt(document.getElementById('cols').value);
+    grid.rows = parseInt(document.getElementById('rows').value);
+    document.getElementById('cols-txt').innerText = grid.cols;
+    document.getElementById('rows-txt').innerText = grid.rows;
+    const dims = SIZES[grid.size];
+    const wMM = (grid.orient==='landscape') ? dims.h : dims.w;
+    const hMM = (grid.orient==='landscape') ? dims.w : dims.h;
+    grid.w = wMM * PXM * grid.cols; grid.h = hMM * PXM * grid.rows;
+    if(bgObj) canvas.remove(bgObj);
+    bgObj = new fabric.Rect({ left: 0, top: 0, width: grid.w, height: grid.h, fill: 'white', selectable: false, evented: false, isBackground: true });
+    canvas.add(bgObj); canvas.sendToBack(bgObj);
+    setMaskMode('idle'); resetView(); 
+  }
+  function resetView() {
+    const topSafe = 100; const uiPadding = 40; 
+    const availW = Math.max(50, window.innerWidth - (uiPadding * 2));
+    const availH = Math.max(50, window.innerHeight - 120 - (uiPadding * 2));
+    const scale = Math.min(availW / grid.w, availH / grid.h);
+    const leftOffset = (window.innerWidth - grid.w * scale) / 2;
+    let topOffset = (window.innerHeight - grid.h * scale) / 2;
+    if (topOffset < topSafe) topOffset = topSafe;
+    canvas.setViewportTransform([scale, 0, 0, scale, leftOffset, topOffset]);
+    canvas.requestRenderAll();
+  }
+  function setMaskMode(mode) {
+    if(mode === 'idle') { isEditing = false; canvas.clipPath = null; } 
+    else { isEditing = true; canvas.clipPath = null; }
+    canvas.requestRenderAll();
+  }
+  function renderOverlay() {
+    const ctx = canvas.getContext(); const vpt = canvas.viewportTransform;
+    const pX = vpt[4]; const pY = vpt[5];
+    const zoom = vpt[0]; const sW = grid.w * zoom; const sH = grid.h * zoom;
+    ctx.save(); const ratio = fabric.devicePixelRatio; ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    ctx.beginPath(); ctx.rect(0, 0, canvas.width, canvas.height); ctx.rect(pX, pY, sW, sH); 
+    ctx.fillStyle = isEditing ? 'rgba(18, 18, 18, 0.85)' : '#121212'; ctx.fill('evenodd');
+    const totalW_cm = (grid.w / PXM) / 10; const totalH_cm = (grid.h / PXM) / 10;
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)'; ctx.lineWidth = 2; ctx.setLineDash([6, 6]);
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'; ctx.font = 'bold 16px Roboto'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    const offset = 40; const topY = pY - offset;
+    ctx.beginPath(); ctx.moveTo(pX - 10, topY); ctx.lineTo(pX + sW + 10, topY); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(pX, topY - 10); ctx.lineTo(pX, topY + 10); ctx.moveTo(pX + sW, topY - 10); ctx.lineTo(pX + sW, topY + 10); ctx.setLineDash([]); ctx.stroke();
+    ctx.fillText(`${totalW_cm.toFixed(1).replace('.', ',')} cm`, pX + sW/2, topY - 20);
+    const leftX = pX - offset;
+    ctx.setLineDash([6, 6]); ctx.beginPath(); ctx.moveTo(leftX, pY - 10); ctx.lineTo(leftX, pY + sH + 10); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(leftX - 10, pY); ctx.lineTo(leftX + 10, pY); ctx.moveTo(leftX - 10, pY + sH); ctx.lineTo(leftX + 10, pY + sH); ctx.setLineDash([]); ctx.stroke();
+    ctx.save(); ctx.translate(leftX - 20, pY + sH/2); ctx.rotate(-Math.PI / 2); ctx.fillText(`${totalH_cm.toFixed(1).replace('.', ',')} cm`, 0, 0); ctx.restore();
+    if(grid.cols > 1 || grid.rows > 1) {
+        const cW = sW / grid.cols; const cH = sH / grid.rows;
+        ctx.beginPath(); ctx.setLineDash([12, 8]); ctx.strokeStyle = 'white'; ctx.lineWidth = 3;
+        for(let c=1; c<grid.cols; c++) { let lx = pX + c*cW; ctx.moveTo(lx, pY); ctx.lineTo(lx, pY+sH); }
+        for(let r=1; r<grid.rows; r++) { let ly = pY + r*cH; ctx.moveTo(pX, ly); ctx.lineTo(pX+sW, ly); }
+        ctx.stroke();
+        ctx.beginPath(); ctx.setLineDash([12, 8]); ctx.strokeStyle = '#d32f2f'; ctx.lineWidth = 1.5;
+        for(let c=1; c<grid.cols; c++) { let lx = pX + c*cW; ctx.moveTo(lx, pY); ctx.lineTo(lx, pY+sH); }
+        for(let r=1; r<grid.rows; r++) { let ly = pY + r*cH; ctx.moveTo(pX, ly); ctx.lineTo(pX+sW, ly); }
+        ctx.stroke();
+    }
+    ctx.strokeStyle = 'rgba(0,0,0,0.1)'; ctx.lineWidth = 1; ctx.setLineDash([]); ctx.strokeRect(pX, pY, sW, sH);
+    const active = canvas.getActiveObject();
+    if (active && isEditing) active._renderControls(ctx, { hasControls: true, hasBorders: true });
+    ctx.restore();
+  }
+
+  function startCrop(fabricImg) {
+    activeImageObj = fabricImg;
+    const dataUrl = fabricImg.toDataURL({ format: 'png', multiplier: 2 });
+    const imgEl = document.getElementById('cropper-img'); imgEl.src = dataUrl;
+    document.getElementById('cropper-modal').style.display = 'flex';
+    setTimeout(() => {
+        if(cropper) cropper.destroy();
+        cropper = new Cropper(imgEl, { viewMode: 1, background: false, autoCropArea: 0.9, responsive: true });
+    }, 50);
+  }
+  function cancelCrop() { document.getElementById('cropper-modal').style.display = 'none'; if(cropper) cropper.destroy(); activeImageObj = null; }
+  function applyCrop() {
+    if(!cropper || !activeImageObj) return;
+    const newDataUrl = cropper.getCroppedCanvas().toDataURL();
+    fabric.Image.fromURL(newDataUrl, (newImg) => {
+      newImg.set({ left: activeImageObj.left, top: activeImageObj.top, scaleX: activeImageObj.scaleX, scaleY: activeImageObj.scaleY, angle: activeImageObj.angle });
+      canvas.remove(activeImageObj); canvas.add(newImg); canvas.setActiveObject(newImg); cancelCrop();
+    });
+  }
+
+  function handleFile(input) {
+    const file = input.files[0]; if(!file) return;
+    toggleAddMenu(); processUploadedFile(file); input.value = '';
+  }
+  function processImageFile(file) {
+    const r = new FileReader(); r.onload = (e) => { fabric.Image.fromURL(e.target.result, (img) => { addToCanvas(img); }); }
+    r.readAsDataURL(file);
+  }
+  function processSVGFile(file) {
+    const url = URL.createObjectURL(file);
+    fabric.loadSVGFromURL(url, (objects, options) => { addToCanvas(fabric.util.groupSVGElements(objects, options)); URL.revokeObjectURL(url); });
+  }
+  
+  async function processPDFFile(file) {
+    document.getElementById('loader').style.display = 'flex'; document.getElementById('loader-msg').innerText = "Lendo PDF...";
+    try {
+        const ab = await file.arrayBuffer(); const pdf = await pdfjsLib.getDocument(ab).promise; tempLoadedPDF = pdf; 
+        if (pdf.numPages > 1) { document.getElementById('loader').style.display = 'none'; document.getElementById('pdf-modal').style.display = 'flex'; } 
+        else { renderPDFPage(1, true); }
+    } catch(e) { alert("Erro PDF: " + e.message); document.getElementById('loader').style.display = 'none'; }
+  }
+  function finishPDFImport(type) {
+      document.getElementById('pdf-modal').style.display = 'none';
+      if (!tempLoadedPDF) return;
+      if (type === 'single') showPDFPageSelection(); else importAllPDFPages();
+  }
+  async function showPDFPageSelection() {
+      document.getElementById('pdf-selection-modal').style.display = 'flex';
+      const container = document.getElementById('pdf-thumb-grid');
+      container.innerHTML = '<div style="width:100%; text-align:center; color:#fff;">Carregando...</div>';
+      await new Promise(r => setTimeout(r, 50)); container.innerHTML = '';
+      const numPages = tempLoadedPDF.numPages;
+      for (let i = 1; i <= numPages; i++) {
+          const page = await tempLoadedPDF.getPage(i);
+          const viewport = page.getViewport({ scale: 0.3 }); 
+          const canvas = document.createElement('canvas');
+          canvas.width = viewport.width; canvas.height = viewport.height;
+          const ctx = canvas.getContext('2d');
+          await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+          const div = document.createElement('div'); div.className = 'pdf-thumb-card';
+          div.onclick = () => selectPDFPage(i);
+          const img = document.createElement('img'); img.src = canvas.toDataURL();
+          const label = document.createElement('span'); label.innerText = `Pág ${i}`;
+          div.appendChild(img); div.appendChild(label); container.appendChild(div);
+          if (i % 3 === 0) await new Promise(r => requestAnimationFrame(r));
+      }
+  }
+  function selectPDFPage(pageNum) { document.getElementById('pdf-selection-modal').style.display = 'none'; renderPDFPage(pageNum, true); }
+  function renderPDFPage(pageNum, centerOnCanvas, targetX, targetY, targetW, targetH, manageLoader = true) {
+      return new Promise(async (resolve, reject) => {
+          if(manageLoader) { document.getElementById('loader').style.display = 'flex'; document.getElementById('loader-msg').innerText = "Renderizando PDF..."; }
+          try {
+              const page = await tempLoadedPDF.getPage(pageNum);
+              const viewport = page.getViewport({ scale: 2.0 }); 
+              const hc = document.createElement('canvas'); hc.width = viewport.width; hc.height = viewport.height;
+              await page.render({ canvasContext: hc.getContext('2d'), viewport: viewport }).promise;
+              fabric.Image.fromURL(hc.toDataURL(), (img) => {
+                  if (centerOnCanvas) addToCanvas(img);
+                  else {
+                      img.set({ left: targetX, top: targetY });
+                      const scaleX = targetW / img.width; const scaleY = targetH / img.height; const scale = Math.min(scaleX, scaleY);
+                      img.scale(scale);
+                      img.set({ left: targetX + (targetW - img.getScaledWidth()) / 2, top: targetY + (targetH - img.getScaledHeight()) / 2 });
+                      canvas.add(img); img.sendToBack(); 
+                  }
+                  if(manageLoader) document.getElementById('loader').style.display = 'none'; resolve();
+              });
+          } catch (error) { if(manageLoader) document.getElementById('loader').style.display = 'none'; alert("Erro ao renderizar página " + pageNum); resolve(); }
+      });
+  }
+  async function importAllPDFPages() {
+      const numPages = tempLoadedPDF.numPages;
+      const cols = Math.ceil(Math.sqrt(numPages)); const rows = Math.ceil(numPages / cols);
+      document.getElementById('cols').value = cols; document.getElementById('rows').value = rows;
+      updateGrid(); 
+      const cellW = grid.w / cols; const cellH = grid.h / rows;
+      document.getElementById('loader').style.display = 'flex'; document.getElementById('loader-msg').innerText = "Importando páginas...";
+      for (let i = 1; i <= numPages; i++) {
+          const idx = i - 1; const col = idx % cols; const row = Math.floor(idx / cols);
+          const posX = col * cellW; const posY = row * cellH;
+          await renderPDFPage(i, false, posX, posY, cellW, cellH, false);
+      }
+      canvas.sendToBack(bgObj); document.getElementById('loader').style.display = 'none'; saveHistory();
+  }
+
+  function addToCanvas(obj) {
+    const cellW = grid.w / grid.cols; if(obj.width > cellW) obj.scaleToWidth(cellW * 0.8);
+    canvas.add(obj); obj.center(); 
+    canvas.setActiveObject(obj); setMaskMode('editing');
+  }
+  function toggleAddMenu() {
+    const main = document.getElementById('toolbar-main'); const add = document.getElementById('toolbar-add');
+    if(main.style.display === 'none') { main.style.display = 'flex'; add.style.display = 'none'; } 
+    else { main.style.display = 'none'; add.style.display = 'flex'; add.classList.remove('hidden-group'); }
+  }
+  function createLabel() {
+    const t = new fabric.IText('Clique duplo', { fontFamily: 'Roboto', fontSize: 100, left: grid.w/2, top: grid.h/2, originX: 'center', originY: 'center', fill: '#000000', charSpacing: 0 });
+    canvas.add(t); canvas.setActiveObject(t); toggleAddMenu();
+  }
+  function updateActiveText(prop) {
+    const obj = canvas.getActiveObject(); if(!obj) return;
+    if(prop === 'spacing') {
+        const val = parseInt(document.getElementById('txtSpacing').value); obj.set('charSpacing', val);
+        document.getElementById('previewText').style.letterSpacing = (val/20) + 'px';
+    }
+    canvas.requestRenderAll();
+  }
+  function loadFonts() {
+    WebFont.load({ google: { families: fonts } });
+    const c = document.getElementById('fontList');
+    fonts.forEach(f => {
+      const d = document.createElement('div'); d.className = 'font-card'; d.innerText = "Aa"; d.style.fontFamily = f;
+      d.onclick = () => {
+        document.getElementById('previewText').style.fontFamily = f;
+        const obj = canvas.getActiveObject(); if(obj) { obj.set('fontFamily', f); canvas.requestRenderAll(); }
+        highlightFont(f);
+      }; c.appendChild(d);
+    });
+  }
+  function highlightFont(name) { document.querySelectorAll('.font-card').forEach(c => { c.classList.remove('active'); if(c.style.fontFamily.replace(/['"]+/g, '') === name) c.classList.add('active'); }); }
+
+  function setupDraggableSheets() {
+    document.querySelectorAll('.sheet').forEach(sheet => {
+        const handle = sheet.querySelector('.drag-zone'); let startY = 0; let currentY = 0; let isDraggingSheet = false;
+        handle.addEventListener('touchstart', (e) => { startY = e.touches[0].clientY; isDraggingSheet = true; }, {passive: false});
+        handle.addEventListener('touchmove', (e) => {
+            if(!isDraggingSheet) return; const diff = e.touches[0].clientY - startY;
+            if(diff > 0) sheet.style.transform = `translateY(${diff}px)`; currentY = diff; e.preventDefault();
+        }, {passive: false});
+        handle.addEventListener('touchend', () => {
+            isDraggingSheet = false; sheet.style.transform = ''; 
+            if(currentY > 80) closeSheets(); else sheet.classList.add('open'); currentY = 0;
+        });
+    });
+  }
+  function openSheet(id) { closeSheets(); document.getElementById(id).classList.add('open'); }
+  function closeSheets() { document.querySelectorAll('.sheet').forEach(s => s.classList.remove('open')); }
+
+  function getDist(t1, t2) { const dx = t1.clientX - t2.clientX; const dy = t1.clientY - t2.clientY; return Math.hypot(dx, dy); }
+
+  function toggleHandMode() {
+    isHandMode = !isHandMode;
+    const btn = document.getElementById('mode-toggle'); const ico = document.getElementById('mode-icon');
+    if(isHandMode) {
+      btn.classList.add('active-hand'); ico.innerText = "pan_tool"; canvas.selection = false; 
+      canvas.defaultCursor = 'grab'; canvas.forEachObject(o => o.selectable = false); closeSheets(); setMaskMode('idle'); 
+    } else {
+      btn.classList.remove('active-hand'); ico.innerText = "touch_app"; canvas.selection = true; 
+      canvas.defaultCursor = 'default'; canvas.forEachObject(o => { if(o!==bgObj && !o.isDimensionIndicator) o.selectable = true; });
+    } canvas.requestRenderAll();
+  }
+
+  function exportPDF() { startExport('pdf'); }
+  function startExport(type) {
+      document.getElementById('export-menu').classList.remove('show');
+      document.getElementById('loader').style.display = 'flex'; document.getElementById('loader-msg').innerText = "Processando...";
+      requestAnimationFrame(() => setTimeout(() => processExport(type), 100));
+  }
+  function saveProject() {
+      document.getElementById('export-menu').classList.remove('show'); updateGridConfigInCanvas();
+      const json = JSON.stringify(canvas.toJSON(['isBackground', 'gridConfig', 'id']));
+      const blob = new Blob([json], {type: "application/json"}); saveAs(blob, `Projeto_Cartaz_${Date.now()}.json`);
+  }
+  function loadProject(input) {
+      const file = input.files[0]; if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => { restoreCanvasState(e.target.result); };
+      reader.readAsText(file); input.value = ''; 
+  }
+
+  async function processExport(type) {
+    const loader = document.getElementById('loader'); const loaderMsg = document.getElementById('loader-msg');
+    try {
+        const { jsPDF } = window.jspdf;
+        const savedVpt = [...canvas.viewportTransform]; canvas.discardActiveObject();
+        canvas.viewportTransform = [1, 0, 0, 1, 0, 0]; canvas.renderAll(); 
+        const dims = SIZES[grid.size]; const pdfW = (grid.orient === 'landscape') ? dims.h : dims.w; const pdfH = (grid.orient === 'landscape') ? dims.w : dims.h; const orientation = (grid.orient === 'landscape') ? 'l' : 'p';
+        const cellW = grid.w / grid.cols; const cellH = grid.h / grid.rows;
+        const targetWidthPx = 1800; const multiplier = targetWidthPx / cellW;
+        let zip = null; if (type === 'img-split' || type === 'pdf-split') zip = new JSZip();
+        if (type === 'img-single') {
+             const dataUrl = canvas.toDataURL({ left: 0, top: 0, width: grid.w, height: grid.h, format: 'jpeg', quality: 0.9, multiplier: 1 });
+            saveAs(dataURItoBlob(dataUrl), `Cartaz_Completo_${Date.now()}.jpg`); finishExport(savedVpt); return;
+        }
+        const totalPages = grid.rows * grid.cols; let processed = 0; let doc = null;
+        if (type === 'pdf') doc = new jsPDF({ orientation: orientation, unit: 'mm', format: grid.size });
+        for(let r=0; r<grid.rows; r++) {
+            for(let c=0; c<grid.cols; c++) {
+                processed++; loaderMsg.innerText = `Gerando ${processed}/${totalPages}...`; await new Promise(resolve => setTimeout(resolve, 10));
+                const regionLeft = c * cellW; const regionTop = r * cellH;
+                const dataUrl = canvas.toDataURL({ left: regionLeft, top: regionTop, width: cellW, height: cellH, format: 'jpeg', quality: 0.92, multiplier: multiplier });
+                if (type === 'pdf') { if (processed > 1) doc.addPage(); doc.addImage(dataUrl, 'JPEG', 0, 0, pdfW, pdfH); } 
+                else if (type === 'img-split') { zip.file(`Pagina_${processed}.jpg`, dataURItoBlob(dataUrl)); }
+                else if (type === 'pdf-split') {
+                    const tempDoc = new jsPDF({ orientation: orientation, unit: 'mm', format: grid.size });
+                    tempDoc.addImage(dataUrl, 'JPEG', 0, 0, pdfW, pdfH); zip.file(`Pagina_${processed}.pdf`, tempDoc.output('blob'));
+                }
+            }
+        }
+        loaderMsg.innerText = "Salvando..."; await new Promise(resolve => setTimeout(resolve, 50));
+        if (type === 'pdf') doc.save(`Cartaz_${Date.now()}.pdf`);
+        else if (zip) { const content = await zip.generateAsync({type:"blob"}); saveAs(content, `Cartaz_Pack_${Date.now()}.zip`); }
+        finishExport(savedVpt);
+    } catch(e) { console.error(e); alert("Erro: " + e.message); document.getElementById('loader').style.display = 'none'; if(typeof savedVpt !== 'undefined') { canvas.viewportTransform = savedVpt; canvas.requestRenderAll(); } }
+  }
+
+  function finishExport(savedVpt) { canvas.viewportTransform = savedVpt; setMaskMode('idle'); canvas.requestRenderAll(); document.getElementById('loader').style.display = 'none'; }
+  function dataURItoBlob(dataURI) {
+      var byteString = atob(dataURI.split(',')[1]); var mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
+      var ab = new ArrayBuffer(byteString.length); var ia = new Uint8Array(ab);
+      for (var i = 0; i < byteString.length; i++) { ia[i] = byteString.charCodeAt(i); }
+      return new Blob([ab], {type: mimeString});
+  }
+</script>
+</body>
+</html>
