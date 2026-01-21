@@ -663,7 +663,7 @@ touch-action: pan-y !important;
       <div class="label-row"><i class="material-icons-round">palette</i> Cor do Texto</div>
 <div style="display:flex; align-items:center; gap:10px; margin-bottom:15px;">
     <input type="color" id="textColor" oninput="changeTextColor(this.value)" style="width:50px; height:50px; padding:0; border:none; background:none; border-radius:50%; cursor:pointer;">
-    <span style="font-size:0.9rem; color:#666;">Toque na bolinha para escolher</span>
+    <span style="font-size:0.9rem; color:#666;">Toque ao lado para escolher</span>
 </div>
       <div class="label-row"><i class="material-icons-round" style="font-size:16px">space_bar</i> Espaçamento</div>
       <input type="range" id="txtSpacing" min="-50" max="800" step="10" oninput="updateActiveText('spacing')">
@@ -1757,6 +1757,7 @@ function triggerTextEdit() {
 </button>
 </body>
 </html>
+
 
 
 
