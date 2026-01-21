@@ -431,6 +431,35 @@ touch-action: pan-y !important;
     canvas {
         touch-action: none !important;
     }
+#floating-edit-btn {
+        position: absolute;
+        bottom: 100px; 
+        left: 50%;
+        transform: translateX(-50%) scale(0.8);
+        background: var(--primary);
+        color: white;
+        border: none;
+        /* Tamanho reduzido */
+        padding: 8px 18px; 
+        border-radius: 30px;
+        font-weight: 700;
+        font-size: 0.8rem; 
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        display: flex;
+        align-items: center;
+        gap: 6px; /* Espaço menor entre ícone e texto */
+        z-index: 90;
+        opacity: 0;
+        pointer-events: none;
+        transition: all 0.2s cubic-bezier(0.1, 0.7, 0.1, 1);
+    }
+
+    #floating-edit-btn.visible {
+        opacity: 1;
+        transform: translateX(-50%) scale(1);
+        pointer-events: auto;
+        bottom: 105px; /* Pulo mais sutil */
+    }
   </style>
 </head>
 <body>
@@ -760,65 +789,110 @@ const fonts = [
 
   // --- CANVAS INIT ---
   function initCanvas() {
-    canvas = new fabric.Canvas('c', {
-      width: window.innerWidth, height: window.innerHeight,
-      backgroundColor: 'transparent',
-      preserveObjectStacking: true, selection: true,
-      centeredScaling: true, uniScaleTransform: true,
-      allowTouchScrolling: false 
-    });
+  canvas = new fabric.Canvas('c', {
+    width: window.innerWidth,
+    height: window.innerHeight,
+    backgroundColor: 'transparent',
+    preserveObjectStacking: true,
+    selection: true,
+    centeredScaling: true,
+    uniScaleTransform: true,
+    allowTouchScrolling: false 
+  });
 
-    window.addEventListener('resize', () => {
-      canvas.setDimensions({ width: window.innerWidth, height: window.innerHeight });
-    });
+  window.addEventListener('resize', () => {
+    canvas.setDimensions({ width: window.innerWidth, height: window.innerHeight });
+  });
 
-    // Eventos Padrão
-    saveHistory();
-    canvas.on('object:added', (e) => { if(!isHistoryProcessing && e.target !== bgObj) saveHistory(); });
-    canvas.on('object:modified', (e) => { if(!isHistoryProcessing) saveHistory(); });
-    canvas.on('object:removed', (e) => { if(!isHistoryProcessing) saveHistory(); });
+  saveHistory();
 
-    // UI Fade e Proteção Multitoque
-    canvas.on('object:moving', (opt) => {
+  canvas.on('object:added', (e) => { 
+    if(!isHistoryProcessing && e.target !== bgObj) saveHistory(); 
+  });
+
+  canvas.on('object:modified', (e) => { 
+    if(!isHistoryProcessing) saveHistory(); 
+    updateFloatingButton(); // Garante o botão no lugar certo após a edição
+  });
+
+  canvas.on('object:removed', (e) => { 
+    if(!isHistoryProcessing) saveHistory(); 
+    updateFloatingButton();
+  });
+
+  canvas.on('object:moving', (opt) => {
+    if (opt.e.touches && opt.e.touches.length > 1) {
+        canvas.discardActiveObject();
+        canvas.requestRenderAll();
+        return;
+    }
+    // Esconde o botão ao mover para não poluir a tela
+    const btn = document.getElementById('floating-edit-btn');
+    if(btn) btn.classList.remove('visible');
+
+    document.getElementById('toolbar').classList.add('ui-faded');
+    document.getElementById('header').classList.add('ui-faded');
+    document.getElementById('mode-toggle').classList.add('ui-faded');
+  });
+
+  canvas.on('mouse:up', () => { 
+    document.getElementById('toolbar').classList.remove('ui-faded');
+    document.getElementById('header').classList.remove('ui-faded');
+    document.getElementById('mode-toggle').classList.remove('ui-faded');
+    
+    if(!canvas.getActiveObject()) {
+        setMaskMode('idle');
+    }
+    updateFloatingButton();
+  });
+
+  canvas.on('mouse:down', (opt) => {
       if (opt.e.touches && opt.e.touches.length > 1) {
           canvas.discardActiveObject();
-          canvas.requestRenderAll();
           return;
       }
-      document.getElementById('toolbar').classList.add('ui-faded');
-      document.getElementById('header').classList.add('ui-faded');
-      document.getElementById('mode-toggle').classList.add('ui-faded');
-    });
+      if(isHandMode) return;
+      if (!opt.target || opt.target === bgObj) {
+          canvas.discardActiveObject();
+          canvas.requestRenderAll();
+          setMaskMode('idle');
+          closeSheets();
+          updateFloatingButton();
+      } else {
+          setMaskMode('editing');
+      }
+  });
 
-    canvas.on('mouse:up', () => { 
-      document.getElementById('toolbar').classList.remove('ui-faded');
-      document.getElementById('header').classList.remove('ui-faded');
-      document.getElementById('mode-toggle').classList.remove('ui-faded');
-      if(!canvas.getActiveObject()) setMaskMode('idle'); 
-    });
+  // LÓGICA DE SELEÇÃO PARA O BOTÃO FLUTUANTE
+  canvas.on('selection:created', () => { 
+    setMaskMode('editing'); 
+    updateFloatingButton();
+  });
+  
+  canvas.on('selection:updated', () => { 
+    updateFloatingButton();
+  });
 
-    canvas.on('mouse:down', (opt) => {
-        if (opt.e.touches && opt.e.touches.length > 1) {
-            canvas.discardActiveObject();
-            return;
-        }
-        if(isHandMode) return;
-        if (!opt.target || opt.target === bgObj) {
-            canvas.discardActiveObject();
-            canvas.requestRenderAll();
-            setMaskMode('idle');
-            closeSheets();
-        } else {
-            setMaskMode('editing');
-        }
-    });
+  canvas.on('selection:cleared', () => { 
+    setMaskMode('idle'); 
+    closeSheets(); 
+    updateFloatingButton();
+  });
 
-    canvas.on('selection:created', () => { setMaskMode('editing'); });
-    canvas.on('selection:cleared', () => { setMaskMode('idle'); closeSheets(); });
-    canvas.on('after:render', renderOverlay);
-    
-    setupHammerGestures();
-  }
+  // EVENTOS DE TEXTO (Evita conflitos com o teclado)
+  canvas.on('text:editing:entered', () => {
+    const btn = document.getElementById('floating-edit-btn');
+    if(btn) btn.classList.remove('visible');
+  });
+
+  canvas.on('text:editing:exited', () => {
+    updateFloatingButton();
+  });
+
+  canvas.on('after:render', renderOverlay);
+  
+  setupHammerGestures();
+}
 
   // --- CONTROLES (EDITAR/DELETAR) ---
   function setupCustomControls() {
@@ -1404,10 +1478,25 @@ function handleEditClick(eventData, transform) {
     if(main.style.display === 'none') { main.style.display = 'flex'; add.style.display = 'none'; } 
     else { main.style.display = 'none'; add.style.display = 'flex'; add.classList.remove('hidden-group'); }
   }
-  function createLabel() {
-    const t = new fabric.IText('Clique duplo', { fontFamily: 'Roboto', fontSize: 100, left: grid.w/2, top: grid.h/2, originX: 'center', originY: 'center', fill: '#000000', charSpacing: 0 });
-    canvas.add(t); canvas.setActiveObject(t); toggleAddMenu();
-  }
+function createLabel() {
+  const t = new fabric.IText('Escreva aqui', { 
+    fontFamily: 'Roboto', fontSize: 100, 
+    left: grid.w/2, top: grid.h/2, 
+    originX: 'center', originY: 'center', 
+    fill: '#000000', charSpacing: 0 
+  });
+  
+  canvas.add(t);
+  canvas.setActiveObject(t);
+  
+  setTimeout(() => {
+    t.enterEditing();
+    t.selectAll();
+    canvas.requestRenderAll();
+  }, 100);
+
+  toggleAddMenu();
+}
   function updateActiveText(prop) {
     const obj = canvas.getActiveObject(); if(!obj) return;
     if(prop === 'spacing') {
@@ -1602,9 +1691,41 @@ function saveProject() {
       for (var i = 0; i < byteString.length; i++) { ia[i] = byteString.charCodeAt(i); }
       return new Blob([ab], {type: mimeString});
   }
+function triggerTextEdit() {
+    const active = canvas.getActiveObject();
+    if (active && (active.type === 'i-text' || active.type === 'text')) {
+        // 1. Faz o Fabric.js entrar no modo de edição (cursor piscando)
+        canvas.setActiveObject(active);
+        active.enterEditing();
+        active.selectAll(); // Seleciona tudo para facilitar a troca
+        
+        // 2. Esconde o botão flutuante enquanto a pessoa digita
+        document.getElementById('floating-edit-btn').classList.remove('visible');
+        
+        // 3. Renderiza o canvas para mostrar o cursor
+        canvas.requestRenderAll();
+    }
+}
+
+  // Função para controlar a visibilidade do botão
+  function updateFloatingButton() {
+      const active = canvas.getActiveObject();
+      const btn = document.getElementById('floating-edit-btn');
+      
+      // Só mostra se for TEXTO e não estivermos já editando (modo digitação)
+      if (active && (active.type === 'i-text' || active.type === 'text') && !active.isEditing) {
+          btn.classList.add('visible');
+      } else {
+          btn.classList.remove('visible');
+      }
+  }
 </script>
+<button id="floating-edit-btn" onclick="triggerTextEdit()">
+    <i class="material-icons-round" style="font-size: 18px;">edit_note</i> Trocar texto
+</button>
 </body>
 </html>
+
 
 
 
