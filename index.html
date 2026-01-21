@@ -919,7 +919,7 @@ const fonts = [
         ...clickAreaConfig, x: -0.5, y: -0.5, offsetY: -24, offsetX: -24, mouseUpHandler: handleEditClick,
         render: function(ctx, left, top, styleOverride, fabricObject) {
             const isImg = fabricObject.type === 'image';
-            renderIcon(isImg ? 'content_cut' : 'palette', isImg ? '#f57c00' : '#233476').call(this, ctx, left, top, styleOverride, fabricObject);
+            renderIcon(isImg ? 'content_cut' : 'brush', isImg ? '#f57c00' : '#f57c00').call(this, ctx, left, top, styleOverride, fabricObject);
         }
     });
     fabric.Object.prototype.controls.deleteControl = new fabric.Control({
@@ -1757,6 +1757,7 @@ function triggerTextEdit() {
 </button>
 </body>
 </html>
+
 
 
 
