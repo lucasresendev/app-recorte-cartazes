@@ -386,6 +386,41 @@
         color: #333;
         font-weight: 500;
     }
+    /* CAIXA DE ROLAGEM DE FONTES */
+    .font-scroll-box {
+        max-height: 250px; /* Altura máxima fixa */
+        overflow-y: auto;  /* Cria barra de rolagem interna se passar da altura */
+        -webkit-overflow-scrolling: touch; /* Garante rolagem lisa no iPhone */
+        border: 2px solid #eee;
+        border-radius: 12px;
+        background: #fff;
+        padding: 5px;
+        margin-bottom: 20px;
+    }
+
+    /* CADA ITEM DA LISTA DE FONTES */
+    .font-list-item {
+        padding: 12px 15px;
+        margin-bottom: 4px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 18px; /* Tamanho bom para ler a fonte */
+        color: #333;
+        transition: background 0.2s;
+        /* O segredo: exibe o próprio nome usando a fonte */
+        white-space: nowrap; 
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .font-list-item:hover { background: #f5f5f5; }
+    
+    /* Item selecionado */
+    .font-list-item.selected {
+        background: var(--primary);
+        color: white;
+        font-weight: bold;
+    }
   </style>
 </head>
 <body>
@@ -585,8 +620,8 @@
       <div class="label-row"><i class="material-icons-round" style="font-size:16px">space_bar</i> Espaçamento</div>
       <input type="range" id="txtSpacing" min="-50" max="800" step="10" oninput="updateActiveText('spacing')">
       <div class="label-row"><i class="material-icons-round" style="font-size:16px">font_download</i> Fonte</div>
-<select id="fontInput" onchange="changeFont(this.value)" style="margin-bottom: 20px; background: white;">
-    </select>
+<div id="font-scroll-container" class="font-scroll-box">
+  </div>
     </div>
   </div>
 
@@ -660,10 +695,10 @@
   let cropper;
   let activeImageObj = null;
 const fonts = [
-      "Roboto", "Open Sans", "Montserrat", "Lato", "Poppins", "Inter", // Básicas
-      "Oswald", "Anton", "Bangers", "Bebas Neue", "Archivo Black", // Impacto
-      "Merriweather", "Playfair Display", "Lora", "Abril Fatface", // Serif
-      "Lobster", "Pacifico", "Dancing Script", "Satisfy", "Permanent Marker", // Cursivas
+      "Roboto", "Open Sans", "Montserrat", "Lato", "Poppins", "Inter",
+      "Oswald", "Anton", "Bangers", "Bebas Neue", "Archivo Black",
+      "Merriweather", "Playfair Display", "Lora", "Abril Fatface",
+      "Lobster", "Pacifico", "Dancing Script", "Satisfy", "Permanent Marker",
       "Caveat", "Shadows Into Light", "Amatic SC", "Courgette"
   ];
 
@@ -810,28 +845,24 @@ const fonts = [
 
   function deleteObject() { deleteActiveObject(); }
   
-  function handleEditClick(eventData, transform) {
-    const target = transform.target;
-    // Texto
-    if(target.type === 'i-text' || target.type === 'text') {
-      openSheet('textSheet');
-      document.getElementById('txtSpacing').value = target.charSpacing;
-const cleanFont = target.fontFamily.replace(/['"]+/g, ''); // Remove aspas
-      document.getElementById('previewText').style.fontFamily = cleanFont;
-      document.getElementById('fontInput').value = cleanFont; // Seleciona no menu
-      // -----------------------------
-      
-      document.getElementById('previewText').style.letterSpacing = (target.charSpacing / 20) + 'px'; 
-    }
-    // Imagem
-    else if (target.type === 'image') {
-        startCrop(target);
-    }
-    // Formas
-    else if (['rect', 'circle', 'triangle', 'polygon', 'path'].includes(target.type)) {
-        openShapeEditor(target);
-    }
+function handleEditClick(eventData, transform) {
+  const target = transform.target;
+
+  if (target.type === 'i-text' || target.type === 'text') {
+    openSheet('textSheet');
+    const cleanFont = target.fontFamily.replace(/['"]+/g, '');
+    document.getElementById('txtSpacing').value = target.charSpacing;
+    document.getElementById('previewText').style.fontFamily = cleanFont;
+    document.getElementById('previewText').style.letterSpacing = (target.charSpacing / 20) + 'px';
+    highlightFontInList(cleanFont);
+  } 
+  else if (target.type === 'image') {
+    startCrop(target);
+  } 
+  else if (['rect', 'circle', 'triangle', 'polygon', 'path'].includes(target.type)) {
+    openShapeEditor(target);
   }
+}
   
   // --- LÓGICA DE FORMAS E EDITOR ---
   function addShape(type) {
@@ -1375,39 +1406,48 @@ function loadFonts() {
     // Carrega do Google Fonts
     WebFont.load({ google: { families: fonts } });
     
-    const select = document.getElementById('fontInput');
-    select.innerHTML = ""; // Limpa
+    const container = document.getElementById('font-scroll-container');
+    container.innerHTML = ""; // Limpa
 
     fonts.forEach(f => {
-      const option = document.createElement('option');
-      option.value = f;
-      option.innerText = f;
-      // Pequeno truque: aplica a fonte na própria opção (funciona em alguns navegadores, não todos)
-      option.style.fontFamily = f; 
-      select.appendChild(option);
+      // Cria um item div para cada fonte
+      const item = document.createElement('div');
+      item.className = 'font-list-item';
+      item.innerText = f; // O texto é o nome da fonte
+      
+      // APLICA A FONTE AO PRÓPRIO ITEM (O que você queria!)
+      item.style.fontFamily = f;
+      
+      // Adiciona o nome da fonte como um dado para usarmos depois
+      item.dataset.font = f;
+
+      item.onclick = () => changeFont(f);
+      container.appendChild(item);
     });
   }
-  function changeFont(fontName) {
-      // Atualiza preview
+function changeFont(fontName) {
+      // Atualiza preview e canvas
       document.getElementById('previewText').style.fontFamily = fontName;
-      
-      // Atualiza objeto no canvas
       const obj = canvas.getActiveObject(); 
       if(obj && (obj.type === 'i-text' || obj.type === 'text')) { 
           obj.set('fontFamily', fontName); 
           canvas.requestRenderAll(); 
       }
+      // Destaca visualmente na lista
+      highlightFontInList(fontName);
   }
-function highlightFont(name) { 
-      document.querySelectorAll('.font-card').forEach(c => { 
-          c.classList.remove('active'); 
-          // Remove aspas do nome da fonte para comparar (ex: "Roboto" vs Roboto)
-          if(c.style.fontFamily.replace(/['"]+/g, '') === name.replace(/['"]+/g, '')) {
-              c.classList.add('active');
-              // Auto-scroll para a fonte selecionada
-              c.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+  // Função auxiliar para pintar o item selecionado na lista
+  function highlightFontInList(fontName) {
+      const cleanName = fontName.replace(/['"]+/g, '');
+      document.querySelectorAll('.font-list-item').forEach(item => {
+          item.classList.remove('selected');
+          if(item.dataset.font === cleanName) {
+              item.classList.add('selected');
+              // Opcional: Rola a lista até o item selecionado
+               item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
           }
-      }); 
+      });
   }
 
   function setupDraggableSheets() {
@@ -1505,6 +1545,7 @@ function highlightFont(name) {
 </script>
 </body>
 </html>
+
 
 
 
