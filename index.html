@@ -1452,20 +1452,42 @@ function changeFont(fontName) {
       });
   }
 
-  function setupDraggableSheets() {
-    document.querySelectorAll('.sheet').forEach(sheet => {
-        const handle = sheet.querySelector('.drag-zone'); let startY = 0; let currentY = 0; let isDraggingSheet = false;
-        handle.addEventListener('touchstart', (e) => { startY = e.touches[0].clientY; isDraggingSheet = true; }, {passive: false});
-        handle.addEventListener('touchmove', (e) => {
-            if(!isDraggingSheet) return; const diff = e.touches[0].clientY - startY;
-            if(diff > 0) sheet.style.transform = `translateY(${diff}px)`; currentY = diff; e.preventDefault();
-        }, {passive: false});
-        handle.addEventListener('touchend', () => {
-            isDraggingSheet = false; sheet.style.transform = ''; 
-            if(currentY > 80) closeSheets(); else sheet.classList.add('open'); currentY = 0;
-        });
+function setupDraggableSheets() {
+  document.querySelectorAll('.sheet').forEach(sheet => {
+    const handle = sheet.querySelector('.drag-zone');
+    let startY = 0;
+    let currentY = 0;
+    let isDraggingSheet = false;
+
+    sheet.addEventListener('touchstart', (e) => {
+      if (e.target.closest('.font-scroll-box')) {
+        isDraggingSheet = false;
+        return;
+      }
+    }, { passive: true });
+
+    handle.addEventListener('touchstart', (e) => {
+      startY = e.touches[0].clientY;
+      isDraggingSheet = true;
+    }, { passive: false });
+
+    handle.addEventListener('touchmove', (e) => {
+      if (!isDraggingSheet) return;
+      const diff = e.touches[0].clientY - startY;
+      if (diff > 0) sheet.style.transform = `translateY(${diff}px)`;
+      currentY = diff;
+      e.preventDefault();
+    }, { passive: false });
+
+    handle.addEventListener('touchend', () => {
+      isDraggingSheet = false;
+      sheet.style.transform = '';
+      if (currentY > 80) closeSheets();
+      else sheet.classList.add('open');
+      currentY = 0;
     });
-  }
+  });
+}
   function openSheet(id) { closeSheets(); document.getElementById(id).classList.add('open'); }
   function closeSheets() { document.querySelectorAll('.sheet').forEach(s => s.classList.remove('open')); }
 
@@ -1547,6 +1569,7 @@ function changeFont(fontName) {
 </script>
 </body>
 </html>
+
 
 
 
