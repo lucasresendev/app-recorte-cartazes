@@ -660,6 +660,11 @@ touch-action: pan-y !important;
     <div class="sheet-content">
       <div class="label-row" style="margin-top:0">Preview</div>
       <div class="preview-box"><span id="previewText" class="preview-text">Abc 123</span></div>
+      <div class="label-row"><i class="material-icons-round">palette</i> Cor do Texto</div>
+<div style="display:flex; align-items:center; gap:10px; margin-bottom:15px;">
+    <input type="color" id="textColor" oninput="changeTextColor(this.value)" style="width:50px; height:50px; padding:0; border:none; background:none; border-radius:50%; cursor:pointer;">
+    <span style="font-size:0.9rem; color:#666;">Toque na bolinha para escolher</span>
+</div>
       <div class="label-row"><i class="material-icons-round" style="font-size:16px">space_bar</i> Espaçamento</div>
       <input type="range" id="txtSpacing" min="-50" max="800" step="10" oninput="updateActiveText('spacing')">
       <div class="label-row"><i class="material-icons-round" style="font-size:16px">font_download</i> Fonte</div>
@@ -943,6 +948,9 @@ function handleEditClick(eventData, transform) {
     document.getElementById('previewText').style.fontFamily = cleanFont;
     document.getElementById('previewText').style.letterSpacing = (target.charSpacing / 20) + 'px';
     highlightFontInList(cleanFont);
+    const currentColor = target.fill;
+    document.getElementById('textColor').value = currentColor; 
+    document.getElementById('previewText').style.color = currentColor;
   } 
   else if (target.type === 'image') {
     startCrop(target);
@@ -1539,6 +1547,17 @@ function changeFont(fontName) {
       // Destaca visualmente na lista
       highlightFontInList(fontName);
   }
+  function changeTextColor(color) {
+    // 1. Atualiza a cor do preview (Abc 123)
+    document.getElementById('previewText').style.color = color;
+    
+    // 2. Atualiza o objeto no Canvas
+    const obj = canvas.getActiveObject();
+    if (obj && (obj.type === 'i-text' || obj.type === 'text')) {
+        obj.set('fill', color);
+        canvas.requestRenderAll();
+    }
+}
 
   // Função auxiliar para pintar o item selecionado na lista
   function highlightFontInList(fontName) {
@@ -1738,6 +1757,7 @@ function triggerTextEdit() {
 </button>
 </body>
 </html>
+
 
 
 
