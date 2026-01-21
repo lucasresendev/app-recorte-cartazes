@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <link rel="preload" href="https://fonts.gstatic.com/s/materialiconsround/v108/L0bxdfMqbVJO61iq6k5uTOfY7VT-T2ddXW2ji6HWEQ.woff2" as="font" type="font/woff2" crossorigin>
   
   <title>Recorte em A3/A4</title>
   
@@ -463,7 +464,9 @@ touch-action: pan-y !important;
   </style>
 </head>
 <body>
-
+<div style="font-family: 'Material Icons Round'; position: absolute; opacity: 0; pointer-events: none; height: 0; overflow: hidden;">
+    edit content_cut close layers palette check edit_note dashboard_customize add_circle center_focus_strong arrow_back brush folder_open title save auto_fix_high tune
+  </div>
   <div id="loader">
     <i class="material-icons-round" style="font-size: 48px; color: var(--accent); animation: spin 1s infinite linear">donut_large</i>
     <p id="loader-msg" style="margin-top:15px; font-weight:500; color: #fff;">Carregando...</p>
@@ -760,7 +763,12 @@ const fonts = [
   };
 
   // --- INICIALIZAÇÃO ---
-  window.onload = () => {
+window.onload = async () => {
+    // CAMADA DE VELOCIDADE: Aguarda as fontes (Material Icons e Google Fonts) carregarem
+    if (document.fonts) {
+      await document.fonts.ready;
+    }
+
     setupCustomControls(); 
     initCanvas();
     loadFonts();
@@ -774,6 +782,8 @@ const fonts = [
     // Pequeno delay para garantir o cálculo correto da tela
     setTimeout(() => {
         updateGrid();
+        // Força uma renderização final para garantir que os ícones apareçam instantaneamente
+        if (canvas) canvas.requestRenderAll();
     }, 100);
   };
 
@@ -1480,6 +1490,7 @@ function handleEditClick(eventData, transform) {
     const cellW = grid.w / grid.cols; if(obj.width > cellW) obj.scaleToWidth(cellW * 0.8);
     canvas.add(obj); obj.center(); 
     canvas.setActiveObject(obj); setMaskMode('editing');
+    canvas.requestRenderAll()
   }
   function toggleAddMenu() {
     const main = document.getElementById('toolbar-main'); const add = document.getElementById('toolbar-add');
@@ -1757,6 +1768,7 @@ function triggerTextEdit() {
 </button>
 </body>
 </html>
+
 
 
 
