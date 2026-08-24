@@ -1,176 +1,182 @@
 <div align="center">
 
-# 🖼️ Recorte em A3/A4 — Fatiamento Inteligente de Cartazes e Painéis
+  🇧🇷 **[Versão em Português](README.pt-BR.md)**
+  <br>
 
-**Single Page Application (SPA) responsiva para fatiamento, diagramação e exportação de imagens e PDFs em papéis A3 e A4 para impressão de murais e painéis em grande formato.**
+  # 🖼️ Poster & Mural Slicer (A3/A4) — Smart Grid Layout & High-Res Export
 
-[![Vercel](https://img.shields.io/badge/Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://recorte-cartazes.vercel.app)
-[![License: GPL v3](https://img.shields.io/badge/License-GPL_v3-blue.svg?style=for-the-badge)](LICENSE)
-[![JavaScript](https://img.shields.io/badge/JavaScript-ES6+-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)](#)
-[![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white)](#)
-[![CSS3](https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white)](#)
-[![Fabric.js](https://img.shields.io/badge/Fabric.js-5.3.1-blue?style=for-the-badge)](#)
+  ### **A responsive Single Page Application (SPA) for slicing, designing, and exporting images and PDFs across A3 and A4 paper formats for large-scale poster and mural printing.**
 
-[🔗 **Acesse a Aplicação Online**](https://recorte-cartazes.vercel.app) · [📖 **Ver Documentação Arquitetural**](ARCHITECTURE.md)
+  [![Vercel](https://img.shields.io/badge/Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://recorte-cartazes.vercel.app)
+  [![License: GPL v3](https://img.shields.io/badge/License-GPL_v3-blue.svg?style=for-the-badge)](LICENSE)
+  [![JavaScript](https://img.shields.io/badge/JavaScript-ES6+-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)](#)
+  [![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white)](#)
+  [![CSS3](https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white)](#)
+  [![Fabric.js](https://img.shields.io/badge/Fabric.js-5.3.1-blue?style=for-the-badge)](#)
+
+  [🔗 **Live Demo**](https://recorte-cartazes.vercel.app) · [📖 **Architecture Documentation**](ARCHITECTURE.md)
 
 </div>
 
 ---
 
-## 📌 Visão Geral & O Problema de Negócio
+## 📌 Overview & The Problem
 
-Em ambientes institucionais e educacionais (como escolas, secretarias e organizadores de eventos), a criação de **painéis, cartazes e murais decorativos ou informativos** em grande formato (frequentemente superiores a 1 metro de largura) é uma necessidade constante.
+In institutional and educational settings (such as schools, administrative departments, and event coordination teams), producing **large-format posters, wall displays, and informational murals** (often exceeding 1 meter in width) is a frequent necessity.
 
-Entretanto, as **impressoras disponíveis no local costumam ser limitadas aos formatos padrão A4 ou A3**.
+However, **standard office printers are strictly limited to standard A4 or A3 paper sizes**.
 
-### ⚠️ Principais Desafios Observados:
-* **Processo manual suscetível a erros:** Sem uma ferramenta dedicada, as equipes tentavam fatiar imagens "no olho" em editores genéricos ou copiar referências manualmente.
-* **Desperdício de recursos:** Múltiplas impressões desalinhadas geravam desperdício direto de papel, tinta e tempo operacional.
-* **Desalinhamento visual:** Margens e proporções ficavam tortas durante a montagem física na parede.
+### ⚠️ Key Observed Challenges:
+* **Error-Prone Manual Process:** Without specialized tools, teams attempted to slice images "by eye" using generic photo editors or manual measurements.
+* **Resource & Financial Waste:** Misaligned prints led to direct waste of paper, toner/ink, and valuable staff hours.
+* **Visual Inconsistencies:** Distorted proportions, uneven overlaps, and misaligned cut margins compromised final wall mounting.
 
-### 💡 A Solução
-O **Recorte em A3/A4** é uma aplicação web de página única (SPA) leve, gratuita e intuitiva, desenvolvida para eliminar a dependência de softwares profissionais complexos (como Photoshop ou CorelDRAW) e resolver a dor direto na fonte.
+### 💡 The Solution
+**A3/A4 Poster Slicer** is a lightweight, free, and intuitive Single Page Application (SPA) engineered to remove the need for complex, expensive desktop graphic software (such as Photoshop or CorelDRAW) by solving the problem directly in the browser.
 
-Com ela, qualquer colaborador pode importar uma arte ou PDF, configurar um grid de páginas em tempo real e exportar os arquivos fatiados e prontos para impressão em segundos.
-
----
-
-## ✨ Principais Funcionalidades
-
-### 📐 Grid Configurável & Escala em Tempo Real
-* **Formatos de Papel:** Suporte completo aos padrões **A3** e **A4** em orientação **Retrato** ou **Paisagem**.
-* **Controle Dinâmico de Células:** Ajuste fluido do número de linhas e colunas através de sliders.
-* **Cálculo de Medida Real:** Exibe as dimensões reais finais do painel em centímetros (ex: `120 cm × 80 cm`), eliminando réguas e cálculos manuais.
-
-### 📄 Processamento e Importação Inteligente de PDFs (`PDF.js`)
-* Importação nativa de arquivos PDF diretamente do dispositivo.
-* **Distribuição Automática:** Em documentos PDF multipáginas, a aplicação calcula o grid ideal e distribui automaticamente cada página nas células correspondentes.
-* **Seleção Individual:** Opção de selecionar uma página específica do PDF para renderização em alta definição no canvas.
-
-### 🎨 Engine Gráfica Interativa (`Fabric.js` & `Cropper.js`)
-* **Edição Rich-Text:** Inserção de texto com integração de +20 fontes do Google Fonts carregadas sob demanda, ajuste de espaçamento de letras e paleta de cores.
-* **Formas Vetoriais:** Biblioteca integrada com retângulos, círculos, estrelas, corações, pentágonos e balões de fala.
-* **Corte de Imagens (Crop):** Ferramenta de recorte dedicada para ajustar fotos e elementos antes do posicionamento.
-* **Organização de Camadas:** Controle de profundidade z-index (trazer para frente, enviar para trás).
-
-### 🖐️ UX Mobile-First & Suporte a Gestos (`Hammer.js`)
-* Gestos intuitivos de **Pinch-to-Zoom** e **Pan (Modo Mão com 2 dedos)**.
-* Interface otimizada para telas sensíveis ao toque com *bottom-sheets* arrastáveis.
-* Respeito às diretrizes de insets do iOS (`env(safe-area-inset-top/bottom)`) e altura com `100dvh`.
-
-### 🖨️ Exportação Flexível & Projetos (`jsPDF` + `JSZip`)
-* **PDF Único Compilado:** Gera um PDF único organizando todas as páginas do painel na sequência exata de impressão.
-* **Pacote ZIP:** Opção de baixar as páginas fatiadas em imagens JPG individuais ou arquivos PDF separados.
-* **Projetos Salváveis em JSON:** Permite salvar e recarregar o estado do projeto para edições futuras.
-* **Gestão de Estado:** Pilha de Undo/Redo (Ctrl+Z / Ctrl+Y), suporte a atalhos de teclado e colagem direta via Clipboard (Ctrl+V).
+Users can import images or multi-page PDFs, configure an interactive grid in real time, customize visual elements, and export print-ready, sequentially ordered files in seconds.
 
 ---
 
-## 📈 Impacto & Resultados Medíveis
+## ✨ Key Features
 
-* 👥 **Adoção Operacional:** Ferramenta adotada como padrão por **50+ profissionais** em secretarias e equipes pedagógicas.
-* ⏱️ **Eficiência de Tempo:** Redução do tempo de montagem de murais de **horas de tentativa e erro para poucos minutos** de configuração.
-* ♻️ **Sustentabilidade & Economia:** Eliminação de impressões perdidas por erros de escala, corte ou margem.
-* 💡 **Autonomia:** Empoderamento de equipes operacionais para criar materiais visuais de alto impacto sem depender de equipes de design.
+### 📐 Configurable Grid & Real-Time Scale
+* **Standard Paper Sizes:** Complete support for **A3** and **A4** standards in **Portrait** and **Landscape** orientations.
+* **Dynamic Grid Controls:** Fluid row and column count adjustment via real-time sliders.
+* **Real-World Dimension Calculation:** Automatically calculates and displays real physical dimensions in centimeters (e.g., `120 cm × 80 cm`), eliminating manual ruler math.
+
+### 📄 Smart PDF Processing & Multi-Page Import (`PDF.js`)
+* Client-side PDF ingestion directly in the browser without server uploads.
+* **Auto-Distribution:** Automatically calculates optimal grid arrangements and distributes multi-page PDF documents across corresponding grid cells.
+* **Single-Page Selector:** High-definition rendering of individual selected pages directly onto the canvas.
+
+### 🎨 Interactive Graphics Engine (`Fabric.js` & `Cropper.js`)
+* **Rich-Text Editing:** On-demand loading of 20+ Google Fonts, letter spacing, sizing, alignment, and color palette customizer.
+* **Vector Shapes Library:** Built-in primitives including rectangles, circles, triangles, stars, hearts, pentagons, and speech bubbles.
+* **Image Cropping:** Integrated cropping tool powered by `Cropper.js` for lossless image adjustments prior to placement.
+* **Layer Hierarchy:** Z-index stack management (bring forward, send backward, bring to front, send to back).
+
+### 🖐️ Mobile-First UX & Touch Gestures (`Hammer.js`)
+* Intuitive **Pinch-to-Zoom** and **Two-Finger Pan (Hand mode)** touch gestures.
+* Touch-optimized interface featuring draggable bottom-sheets for mobile editing workflows.
+* Full adherence to iOS viewport guidelines (`env(safe-area-inset-top/bottom)`) and dynamic viewport height (`100dvh`).
+
+### 🖨️ Flexible Export & Project Storage (`jsPDF` + `JSZip`)
+* **Single Compiled PDF:** Generates a unified multi-page PDF with all grid pages sequentially ordered for printing.
+* **ZIP Archive Packaging:** Batch export individual high-resolution JPG images or standalone single-page PDFs.
+* **Editable JSON Projects:** Save and reload complete project states (layers, fonts, and grid geometry) for future editing.
+* **State Management:** Complete Undo/Redo history stack (Ctrl+Z / Ctrl+Y), keyboard shortcuts, and direct Clipboard paste (Ctrl+V).
 
 ---
 
-## 🛠️ Tecnologias Utilizadas
+## 📈 Impact & Measurable Results
 
-A aplicação foi construída com foco em **alta performance e zero dependências de build/compilação**, podendo ser servida diretamente em qualquer hospedagem estática.
+* 👥 **Operational Adoption:** Established as the standard layout tool by **50+ staff members** across schools, secretariats, and pedagogical teams.
+* ⏱️ **Time Efficiency:** Slashed mural layout preparation from **hours of trial and error to just a few minutes**.
+* ♻️ **Sustainability & Cost Savings:** Eliminated wasted print runs caused by incorrect scaling, cut lines, or misaligned margins.
+* 💡 **Staff Autonomy:** Empowered non-technical staff to create high-impact, professional large-format materials independently.
 
-| Categoria | Tecnologias / Bibliotecas |
+---
+
+## 🛠️ Technology Stack
+
+The application was built with a strict focus on **high performance and zero build/bundling overhead**, allowing instant static hosting on any CDN.
+
+| Category | Technologies / Libraries |
 | :--- | :--- |
-| **Core Frontend** | HTML5 Semântico, CSS3 (Vanilla / Tokens / CSS Variables), JavaScript (ES6+ Modulado) |
-| **Engine Gráfica** | [Fabric.js 5.3.1](https://fabricjs.com/) (Manipulação 2D de Canvas) |
-| **Processamento de PDF** | [PDF.js 3.4.120](https://mozilla.github.io/pdf.js/) (Leitura/Render) & [jsPDF 2.5.1](https://github.com/parallax/jsPDF) (Geração PDF) |
-| **Utilitários & Export** | [Cropper.js](https://fengyuanchen.github.io/cropperjs/) (Recorte), [Hammer.js](https://hammerjs.github.io/) (Touch), [JSZip](https://stuk.github.io/jszip/) (ZIP), [FileSaver.js](https://github.com/eligrey/FileSaver.js/) |
-| **Fontes & Ícones** | Google Fonts (WebFont Loader) & Material Icons Round |
-| **Infra & Deploy** | GitHub, Vercel (CI/CD Automático) |
+| **Core Frontend** | Semantic HTML5, Vanilla CSS3 (Custom Properties / Design Tokens), Modular JavaScript (ES6+) |
+| **Canvas Graphics Engine** | [Fabric.js 5.3.1](https://fabricjs.com/) (2D Canvas manipulation & interactive object model) |
+| **PDF Processing** | [PDF.js 3.4.120](https://mozilla.github.io/pdf.js/) (Client-side render) & [jsPDF 2.5.1](https://github.com/parallax/jsPDF) (PDF generation) |
+| **Utilities & Export** | [Cropper.js](https://fengyuanchen.github.io/cropperjs/) (Crop), [Hammer.js](https://hammerjs.github.io/) (Touch Gestures), [JSZip](https://stuk.github.io/jszip/) (ZIP Packaging), [FileSaver.js](https://github.com/eligrey/FileSaver.js/) |
+| **Typography & Icons** | Google Fonts (WebFont Loader) & Material Icons Round |
+| **Deployment & CI/CD** | GitHub, Vercel (Automatic Deployments) |
 
 ---
 
-## 🧠 Desenvolvimento Assistido por IA & Engenharia de Prompt
+## 🧠 AI-Assisted Engineering & Architecture
 
-Este projeto serviu como um laboratório prático de **Engenharia de Software assistida por Inteligência Artificial**. 
+This project served as a practical testbed for **AI-assisted Software Engineering**.
 
-Superando o uso convencional de chatbots genéricos, o desenvolvimento envolveu o uso de **IDE e CLI integradas**, construindo mapeamentos arquiteturais ([ARCHITECTURE.md](ARCHITECTURE.md)) e contextos direcionados para acelerar a entrega e garantir qualidade de código.
+Moving beyond generic chatbot usage, development leveraged **IDE and CLI workflows**, disciplined architectural mapping ([ARCHITECTURE.md](ARCHITECTURE.md)), and structured system contexts to accelerate delivery while ensuring clean code quality.
 
-### Pontos Chave do Processo:
-* **Modelagem de Estado e Memória:** Estruturação da lógica de Undo/Redo com preservação de propriedades de background e gerenciamento de renderização do Fabric.js.
-* **UX & Eventos Sensíveis ao Toque:** Soluções para tratar concorrência de rolagem de página (`touch-action`) versus gestos de edição no Canvas em dispositivos móveis.
-* **Arquitetura Modular em JS Puro:** Garantia da ordem de dependências sem a necessidade de bundlers (Webpack/Vite), visando máxima leveza e carregamento instantâneo.
+### Key Engineering Highlights:
+* **State & Memory Modeling:** Structured Undo/Redo serialization while preserving background/grid lock metadata and Fabric.js canvas state.
+* **Touch Event Coordination:** Resolved event collision between native mobile page scrolling (`touch-action`) and multi-touch canvas manipulation.
+* **Zero-Bundler Modular Architecture:** Maintained strict modular separation and dependency ordering in pure JavaScript for near-instant cold loads without Webpack or Vite.
 
 ---
 
-## 📂 Estrutura de Arquivos
+## 📂 Project Structure
 
-```
-/
-├── index.html            # Ponto de entrada SPA (compatível com Vercel / GitHub Pages)
+```text
+.
 ├── css/
-│   ├── variables.css     # Design tokens, variáveis CSS (:root) e resets globais
-│   ├── layout.css        # Layout estrutural (Header, Canvas Wrapper, Toolbar, Mode Toggle)
-│   └── components.css    # Estilos de componentes (Modais, Sheets arrastáveis, Botões flutuantes)
+│   ├── components.css     # Component styles (Modals, Draggable Sheets, Floating Buttons)
+│   ├── layout.css         # Structural layout (Header, Canvas Wrapper, Toolbar, Mode Toggle)
+│   └── variables.css      # Design tokens, CSS variables (:root), and global resets
 ├── js/
-│   ├── config.js         # Constantes de tamanho, fontes, estado global e caminhos SVG
-│   ├── canvas.js         # Engine do Fabric.js, controles customizados, grid e histórico
-│   ├── shapes.js         # Manipulação de formas geométricas, textos, fontes e recorte
-│   ├── pdf.js            # Leitura, seleção e importação de documentos PDF multipáginas
-│   ├── export.js         # Exportação para PDF, JPG, ZIP e salvamento do projeto em JSON
-│   ├── ui.js             # Controle da interface, atalhos de teclado, drag & drop, clipboard
-│   └── app.js            # Ponto de entrada principal (bootstrap window.onload)
-├── ARCHITECTURE.md       # Mapa arquitetural detalhado do sistema
-└── README.md             # Documentação do repositório
+│   ├── app.js             # Main application bootstrap (window.onload & lifecycle init)
+│   ├── canvas.js          # Fabric.js engine, custom controls, grid renderers, and history
+│   ├── config.js          # Constants, paper dimensions, global state, and SVG paths
+│   ├── export.js          # PDF, JPG, and ZIP export pipelines & JSON project serialization
+│   ├── pdf.js             # Multi-page PDF parsing, page picker, and auto-grid distributor
+│   ├── shapes.js          # Vector shapes factory, text handling, typography, and crop
+│   └── ui.js              # UI controllers, keyboard shortcuts, drag & drop, clipboard
+├── ARCHITECTURE.md        # Detailed system architecture document
+├── LICENSE                # GNU GPL v3.0 license terms
+├── README.md              # English documentation
+├── README.pt-BR.md        # Portuguese documentation
+├── index.html             # SPA entry point (compatible with Vercel & GitHub Pages)
+└── vercel.json            # Vercel deployment and routing configuration
 ```
 
 ---
 
-## 💻 Como Executar o Projeto Localmente
+## 🚀 How to Run Locally
 
-Por ser uma aplicação web 100% estática, **não é necessário instalar dependências de backend ou executar comandos de build** (`npm install` ou `npm run build`).
+Because this is a 100% static client-side web application, **no backend dependencies or build steps (`npm install` or `npm run build`) are required**.
 
-1. **Clone o repositório:**
+1. **Clone the repository:**
    ```bash
    git clone https://github.com/lucasresendev/app-recorte-cartazes.git
    cd app-recorte-cartazes
    ```
 
-2. **Abra a aplicação:**
-   * Basta abrir o arquivo `index.html` diretamente no seu navegador de preferência.
-   * Ou utilize qualquer servidor HTTP estático local de sua escolha (ex: extensão *Live Server* no VS Code ou `npx serve .`).
+2. **Open the application:**
+   * Open `index.html` directly in any modern web browser.
+   * Or run any local static HTTP server of your choice (e.g., VS Code *Live Server* extension or `npx serve .`).
 
 ---
 
-## 👤 Autor
+## 👤 Author
 
 <div align="center">
 
   ### **Lucas Resende** (`@lucasresendev`)
-  *Desenvolvedor de Software & Estudante de Análise e Desenvolvimento de Sistemas (Fatec Taubaté)*
+  *Software Developer & Systems Analysis and Development Student (Fatec Taubaté)*
 
   [![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white)](https://linkedin.com/in/lucasresendev)
-  [![Portfólio Web](https://img.shields.io/badge/Portfólio_Web-0f4c80?style=for-the-badge&logo=astro&logoColor=white)](https://lucasresende.pages.dev)
+  [![Web Portfolio](https://img.shields.io/badge/Web_Portfolio-0f4c80?style=for-the-badge&logo=astro&logoColor=white)](https://lucasresende.pages.dev)
   [![GitHub](https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/lucasresendev)
 
-  > *"Vejo o código não como um fim em si mesmo, mas como uma base para a desconstrução de necessidades e a criação de soluções."*
+  > *"I don't see code as an end in itself, but as a tool to break down needs and craft meaningful solutions."*
 
 </div>
 
 ---
 
-## 📄 Licença & Código Aberto (Copyleft)
+## 📄 License & Open Source (Copyleft)
 
-Este projeto é um software livre distribuído sob a licença **GNU General Public License v3.0 (GPL-3.0)**. 
+This project is free software licensed under the **GNU General Public License v3.0 (GPL-3.0)**.
 
-### 🔓 O que isso significa?
-* **Liberdade de uso e modificação:** Qualquer pessoa é livre para usar, copiar, modificar, estudar e distribuir este projeto.
-* **Cláusula Copyleft (Viral):** Se você modificar ou criar um projeto derivado a partir deste código, **você também é obrigado a mantê-lo 100% aberto e gratuito sob a mesma licença GPL-3.0** para que a comunidade continue se beneficiando.
+### 🔓 What does this mean?
+* **Freedom to use and modify:** Anyone is free to run, study, modify, and distribute this software.
+* **Copyleft (Reciprocal License):** If you modify or build a derivative work based on this codebase, **you must also distribute your modifications openly under the exact same GPL-3.0 license**, ensuring the community continues to benefit.
 
-Consulte o arquivo [LICENSE](LICENSE) para obter o texto completo da licença.
+See the [LICENSE](LICENSE) file for the full license text.
 
 ---
 
 <div align="center">
-  Desenvolvido por <b>Lucas Resende</b> sob a licença <a href="LICENSE">GNU GPL v3.0</a>.
+  Developed by <b><a href="https://github.com/lucasresendev">Lucas Resende</a></b> under the <a href="LICENSE">GNU GPL v3.0</a> license. 🚀
 </div>
